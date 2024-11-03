@@ -4,13 +4,14 @@ class entity():
   Class for ants and food to inherit from
   Where food can be prey instead of just fruit
   '''
-  def __init__(self,position,map_size_x,map_size_y,display_character):
+  def __init__(self,position,map_size_x,map_size_y,display_character,ID):
     self.display_character = display_character
+    self.ID = ID
     self.position = position
-    self.heath = 100
-    self.damage = 1
-    self.max_movement_speed = 3
-    self.obs_range = 2
+    self.heath = 10
+    self.damage = 0
+    self.max_movement_speed = 1
+    self.obs_range = 1
     self.obs = []
 
     self.map_size_x = map_size_x
