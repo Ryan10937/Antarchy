@@ -1,0 +1,11 @@
+---
+grid_size_x: 10
+grid_size_y: 8
+
+episodes: 20
+
+food: 3
+
+ants: 5
+
+
