@@ -77,7 +77,12 @@ class world():
     due to lag-time of 2d/3d rendering, this function will also sleep until there are less than n files
     '''
     #create state dictionary
-    entity_dict={'episode':episode,'step':step,'is_last_step':is_last_step}
+    entity_dict={
+      'episode':episode,
+      'step':step,
+      'is_last_step':is_last_step,
+      'grid_size':self.size,
+      }
     entity_dict['entities'] = [ent.get_stats() for ent in self.ants]
     entity_dict['food'] = [ent.get_stats() for ent in self.food]
 
