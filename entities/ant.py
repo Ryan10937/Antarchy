@@ -25,3 +25,7 @@ class ant(entity):
       self.food_eaten+=1
       if entity.is_food==False:
         self.ants_eaten+=1
+        entity.is_alive=False
+
+  def act(self,grid):
+    self.move(grid)

@@ -45,8 +45,10 @@ class world():
       ID = ID+num_ants,
                             ) 
                      for ID in range(num_food)]
+    self.graveyard = []
     self.place_ants()
     self.place_food()
+
   def render(self):
     print(self.grid)
 
@@ -62,11 +64,20 @@ class world():
       for y in range(self.size[1]):
         if len(self.grid[x,y].entities) > 1:
           self.ant_conflict(self.grid[x,y])
+          
   def ant_conflict(self,arena:spot):
     for ant in arena.entities:
+      if ant.health < 0:
+        #dead ants cant move
+        continue
       if ant.is_food:
         #food doesnt get a turn, its food
         continue
-      ant.fight([ants in arena.entities if ant.ID != ants.ID])
+      ant.fight([ants for ants in arena.entities if ant.ID != ants.ID])
+
+  def entity_turns(self):
+    for ant in self.ants:
+      ant.act(self.grid)
+
 
 

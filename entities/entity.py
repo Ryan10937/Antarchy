@@ -13,6 +13,7 @@ class entity():
     self.max_movement_speed = 1
     self.obs_range = 1
     self.obs = []
+    self.is_alive = True
 
     self.map_size_x = map_size_x
     self.map_size_y = map_size_y
@@ -43,7 +44,7 @@ class entity():
     Grid is the character array that represents the world
       If i can pass the actual world to this function, that might be better for encounters
     '''
-    for _ in range(self.max_movement_speed()):
+    for _ in range(self.max_movement_speed):
       direction=self.decide_direction(grid)
       self.move_one(direction)
   def check_new_position(self,new_position):
