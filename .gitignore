@@ -1,3 +1,36 @@
 WILO.txt
 Roadmap.txt
 ants_env/*
+
+# Ignore the Godot import and cache files
+.import/
+.cache/
+
+# Ignore the exported builds
+export/**/   # You can specify specific folders like `export/linux/` if needed
+
+# Godot specific files
+*.godot
+
+# Ignore personal editor configuration files
+.editor_settings-4.tres
+.editor_layout.cfg
+
+# OS-specific files
+.DS_Store   # macOS specific
+Thumbs.db   # Windows specific
+desktop.ini # Windows specific
+
+# Compiled scripts (if applicable)
+*.mono.dll
+*.mono.pdb
+
+# Ignore user-defined project settings that shouldn't be shared
+.project_metadata
+.project.godotfiles
+
+# Optional: ignore add-ons if they shouldn't be tracked
+# addons/*
+
+# Logs and debug files
+*.log
