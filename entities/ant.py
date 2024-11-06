@@ -16,16 +16,24 @@ class ant(entity):
   def fight(self,entity_list):
     #this isnt great, it will attack food or the other entity with equal chance
     #it will do for now but i would like to change it later
-    random_target = random.randint(0,len(entity_list)-1)
+    if len(entity_list)>1:
+      random_target = random.randint(0,len(entity_list)-1)
+    else:
+      random_target=0
     self.attack(entity_list[random_target])
     
   def attack(self,entity):
     entity.health -= self.damage
-    if entity.health < 0:
+    print(self.ID,'attacking', entity.ID,'for',entity.damage)
+    if entity.health <= 0:
       self.food_eaten+=1
+      entity.display_character='#'
+      entity.is_alive=False
       if entity.is_food==False:
         self.ants_eaten+=1
-        entity.is_alive=False
 
   def act(self,grid):
-    self.move(grid)
+    if len(grid[self.position[0],self.position[1]].entities)>1:
+      self.fight(grid[self.position[0],self.position[1]].entities)
+    else:
+      self.move(grid)
