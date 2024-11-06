@@ -20,6 +20,8 @@ class entity():
 
     self.wall_bumps = 0
 
+    self.log_folder = './logs/log/'
+
   def get_stats(self):
     return {
       'health':self.health,
@@ -78,5 +80,5 @@ class entity():
     '''
     return random.randint(0,4)
   def log(self,message):
-    with open('./logs/log.log','a') as f:
+    with open(self.log_folder+'log.log','a') as f:
       f.write(message+'\n')

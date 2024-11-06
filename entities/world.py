@@ -35,8 +35,9 @@ class spot():
 class world():
   def __init__(self,x_size,y_size,num_ants,num_food):
     self.state_log_folder = './logs/state/'
+    self.log_folder = './logs/log/'
     self.sleep_time = 1#seconds
-    self.log_limit = 10
+    self.log_limit = 1000
     self.size = [x_size,y_size]
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.ants = [ant(
@@ -69,14 +70,14 @@ class world():
     for fd in self.food:
       self.grid[fd.position[0],fd.position[1]].add_entity(fd)
 
-  def log_state(self,episode,step):
+  def log_state(self,episode,step,is_last_step):
     '''
     log state as json file for godot to read when ready
 
     due to lag-time of 2d/3d rendering, this function will also sleep until there are less than n files
     '''
     #create state dictionary
-    entity_dict={'episode':episode,'step':step}
+    entity_dict={'episode':episode,'step':step,'is_last_step':is_last_step}
     entity_dict['entities'] = [ent.get_stats() for ent in self.ants]
     entity_dict['food'] = [ent.get_stats() for ent in self.food]
 
@@ -88,6 +89,10 @@ class world():
   def clean_state_logs(self):
     shutil.rmtree(self.state_log_folder)
     os.makedirs(self.state_log_folder) 
+
+    shutil.rmtree(self.log_folder)
+    os.makedirs(self.log_folder) 
+
 
 
   def cleanup(self):
@@ -111,7 +116,7 @@ class world():
     self.cleanup()
 
   def log(self,message):
-    with open('./logs/log.log','a') as f:
+    with open(self.log_folder+'log.log','a') as f:
       f.write(message+'\n')
 
 
