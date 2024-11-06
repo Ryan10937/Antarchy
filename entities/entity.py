@@ -8,7 +8,7 @@ class entity():
     self.display_character = display_character
     self.ID = ID
     self.position = position
-    self.heath = 10
+    self.health = 10
     self.damage = 0
     self.max_movement_speed = 1
     self.obs_range = 1
@@ -19,6 +19,15 @@ class entity():
     self.map_size_y = map_size_y
 
     self.wall_bumps = 0
+
+  def get_stats(self):
+    return {
+      'health':self.health,
+      'is_alive':self.is_alive,
+      'ID':self.ID,
+      'position':self.position,
+      'obs_range':self.obs_range,
+      }
 
   def move_one(self,direction):
     direction_dict = {

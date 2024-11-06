@@ -1,8 +1,13 @@
 import numpy as np
 import random
+import json
+import os
+import shutil
+import time
+from datetime import datetime
+
 from entities.ant import ant
 from entities.food import food
-import copy
 class spot():
   def __init__(self,position):
     self.position = position
@@ -29,6 +34,9 @@ class spot():
 
 class world():
   def __init__(self,x_size,y_size,num_ants,num_food):
+    self.state_log_folder = './logs/state/'
+    self.sleep_time = 1#seconds
+    self.log_limit = 10
     self.size = [x_size,y_size]
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.ants = [ant(
@@ -61,22 +69,27 @@ class world():
     for fd in self.food:
       self.grid[fd.position[0],fd.position[1]].add_entity(fd)
 
-  # def resolve_conflicts(self):
-  #   for x in range(self.size[0]):
-  #     for y in range(self.size[1]):
-  #       if len(self.grid[x,y].entities) > 1:
-  #         self._ant_conflict(self.grid[x,y])
+  def log_state(self,episode,step):
+    '''
+    log state as json file for godot to read when ready
+
+    due to lag-time of 2d/3d rendering, this function will also sleep until there are less than n files
+    '''
+    #create state dictionary
+    entity_dict={'episode':episode,'step':step}
+    entity_dict['entities'] = [ent.get_stats() for ent in self.ants]
+    entity_dict['food'] = [ent.get_stats() for ent in self.food]
+
+    time_string = datetime.now().strftime('%d_%H_%M_%S_%f')
+    with open(f'{self.state_log_folder}state_at_{time_string}.json','w') as f:
+      json.dump(entity_dict,f)
+    if len(os.listdir(self.state_log_folder))>=self.log_limit:
+      time.sleep(self.sleep_time)
+  def clean_state_logs(self):
+    shutil.rmtree(self.state_log_folder)
+    os.makedirs(self.state_log_folder) 
 
 
-  # def _ant_conflict(self,arena:spot):
-  #   for ant in arena.entities:
-  #     if ant.health <= 0:
-  #       #dead ants cant move
-  #       continue
-  #     if ant.is_food:
-  #       #food doesnt get a turn, its food
-  #       continue
-  #     ant.fight([ants for ants in arena.entities if ant.ID != ants.ID])
   def cleanup(self):
     for x in range(self.size[0]):
       for y in range(self.size[1]):

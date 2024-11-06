@@ -13,6 +13,15 @@ class ant(entity):
     # self.gender = True
     # self.attractiveness_score = 0
 
+  def get_stats(self):
+    stats = super().get_stats()
+    stats.update({
+      'max_health':self.max_health,
+      'food_eaten':self.food_eaten,
+      'ants_eaten':self.ants_eaten,
+    })
+    return stats
+
   def fight(self,entity_list):
     #this isnt great, it will attack food or the other entity with equal chance
     #it will do for now but i would like to change it later
