@@ -6,3 +6,4 @@ class food(entity):
     self.damage = 0
     self.health = 20
     self.max_movement_speed = 0
+    self.is_food=True

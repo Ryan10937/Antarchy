@@ -57,4 +57,16 @@ class world():
     for fd in self.food:
       self.grid[fd.position[0],fd.position[1]].add_entity(fd)
 
+  def resolve_conflicts(self):
+    for x in range(self.size[0]):
+      for y in range(self.size[1]):
+        if len(self.grid[x,y].entities) > 1:
+          self.ant_conflict(self.grid[x,y])
+  def ant_conflict(self,arena:spot):
+    for ant in arena.entities:
+      if ant.is_food:
+        #food doesnt get a turn, its food
+        continue
+      ant.fight([ants in arena.entities if ant.ID != ants.ID])
+
 
