@@ -77,3 +77,6 @@ class entity():
       agent-like decision maker later 
     '''
     return random.randint(0,4)
+  def log(self,message):
+    with open('./logs/log.log','a') as f:
+      f.write(message+'\n')

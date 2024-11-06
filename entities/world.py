@@ -110,6 +110,10 @@ class world():
       self.grid[ant.position[0],ant.position[1]].add_entity(ant)
     self.cleanup()
 
+  def log(self,message):
+    with open('./logs/log.log','a') as f:
+      f.write(message+'\n')
+
 
 
 

@@ -13,9 +13,9 @@ def run_episode(grid_world: world,episode,config):
   waiting_count=0
   waiting_timeout=10
   while len(os.listdir(grid_world.state_log_folder)) > 1:
-    print('waiting for godot to read and delete files',waiting_count)
+    grid_world.log('waiting for godot to read and delete files',waiting_count)
     if waiting_count >= waiting_timeout:
-      print('Breaking wait, timeout reached')
+      grid_world.log('Breaking wait, timeout reached')
       break
     waiting_count+=1
     time.sleep(1)

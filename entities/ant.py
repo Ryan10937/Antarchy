@@ -33,7 +33,7 @@ class ant(entity):
     
   def attack(self,entity):
     entity.health -= self.damage
-    print(self.ID,'attacking', entity.ID,'for',entity.damage)
+    entity.log(self.ID,'attacking', entity.ID,'for',entity.damage)
     if entity.health <= 0:
       self.food_eaten+=1
       entity.display_character='#'
@@ -46,3 +46,4 @@ class ant(entity):
       self.fight(grid[self.position[0],self.position[1]].entities)
     else:
       self.move(grid)
+  
