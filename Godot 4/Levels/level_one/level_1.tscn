@@ -1,25 +1,17 @@
-[gd_scene load_steps=6 format=3 uid="uid://dpnenjm22thdy"]
+[gd_scene load_steps=5 format=3 uid="uid://dpnenjm22thdy"]
 
 [ext_resource type="Script" path="res://Levels/level_one/level_1.gd" id="1_s10u3"]
-[ext_resource type="PackedScene" uid="uid://0ub84thmiv3h" path="res://plain_tile.tscn" id="2_6a8j5"]
-[ext_resource type="Texture2D" uid="uid://di587m3kutpxv" path="res://Assets/Icons/1 Icons/6/Skillicon6_16.png" id="2_ekg2t"]
-[ext_resource type="Texture2D" uid="uid://dawgkotbd60xv" path="res://Assets/Icons/1 Icons/13/Skillicon13_29.png" id="3_nf7er"]
-[ext_resource type="Texture2D" uid="uid://bgb38otcwamcu" path="res://Assets/Icons/1 Icons/11/Skillicon11_19.png" id="4_6l31g"]
+[ext_resource type="PackedScene" uid="uid://0ub84thmiv3h" path="res://Scenes/plain_tile.tscn" id="2_6a8j5"]
+[ext_resource type="Texture2D" uid="uid://bk2jlxifwgtwy" path="res://Assets/Icons/1 Icons/9/Skillicon9_16.png" id="2_6khey"]
+[ext_resource type="Texture2D" uid="uid://b2am0et1chx3h" path="res://Assets/Icons/1 Icons/8/Skillicon8_29.png" id="3_a41o0"]
 
 [node name="Level_1" type="Node2D" node_paths=PackedStringArray("camera_ref")]
 script = ExtResource("1_s10u3")
-food = ExtResource("2_ekg2t")
-creature_team_1 = ExtResource("3_nf7er")
-creature_team_2 = ExtResource("4_6l31g")
-food_count = 20
-creature_team_1_count = 10
-creature_team_2_count = 10
-grid_width = 10
-grid_height = 10
-tilemap_spacing = 250.0
+food_texture = ExtResource("2_6khey")
+creature_texture = ExtResource("3_a41o0")
 camera_ref = NodePath("Camera2D")
 tilemap_scene_path = ExtResource("2_6a8j5")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2(-65, -298)
+position = Vector2(2, 7)
 zoom = Vector2(0.465, 0.465)
