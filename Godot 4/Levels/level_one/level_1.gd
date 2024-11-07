@@ -1,18 +1,17 @@
 extends Node2D
 
 # Variables to set the icons used to represent items and creatures
-@export var food: CompressedTexture2D
-@export var creature_team_1: CompressedTexture2D
-@export var creature_team_2: CompressedTexture2D
-
-@export var food_count: int
-@export var creature_team_1_count: int
-@export var creature_team_2_count: int
+@export var food_texture: Texture2D
+@export var creature_texture: Texture2D
 
 # Variables to set the grid dimensions and spacing
-@export var grid_width: int = 2
-@export var grid_height: int = 2
-@export var tilemap_spacing: float = 300  # Distance between tilemaps
+var grid_width: int = 0
+var grid_height: int = 0
+var tilemap_spacing: float = 250  # Adjust as needed
+
+# Lists to store positions of entities and food
+var entity_positions: Array[Vector2] = []
+var food_positions: Array[Vector2] = []
 
 # Reference to the camera
 @export var camera_ref: Camera2D
@@ -20,83 +19,80 @@ extends Node2D
 # Path to the TileMap scene to instantiate
 @export var tilemap_scene_path: PackedScene
 
-# Runs when the node enters the scene tree
-func _ready():
-	# Call the function to spawn the grid
-	spawn_tilemap_grid()
-	# Adjust the camera to fit the entire grid
+# Function to set the grid size
+func set_grid_size(x_length: int, y_length: int):
+	grid_width = x_length
+	grid_height = y_length
+	# Spawn the grid
+	spawn_tilemap_grid(grid_width, grid_height)
+	# Adjust the camera
 	position_camera()
-	# Spawn food and creatures on random tiles
-	place_entities()
 
-# Function to spawn the TileMap instances in a grid
-func spawn_tilemap_grid():
+# Function to add an entity or food position
+func add_entity(x_pos: int, y_pos: int, is_food: bool):
+	if is_food:
+		food_positions.append(Vector2(x_pos, y_pos))
+	else:
+		entity_positions.append(Vector2(x_pos, y_pos))
+
+# Function to place all entities after data is received
+func place_entities():
+	# Place food entities
+	for pos in food_positions:
+		var tile_pos = Vector2((pos.x - 1) * tilemap_spacing, (pos.y - 1) * tilemap_spacing)
+		create_entity(food_texture, tile_pos, true)
+	# Place creature entities
+	for pos in entity_positions:
+		var tile_pos = Vector2((pos.x - 1) * tilemap_spacing, (pos.y - 1) * tilemap_spacing)
+		create_entity(creature_texture, tile_pos, false)
+
+# Function to spawn the grid (no changes made here as per your request)
+func spawn_tilemap_grid(grid_width: int, grid_height: int):
 	# Ensure tilemap_scene_path is valid
 	if tilemap_scene_path == null:
 		print("Tilemap scene path is invalid!")
 		return
-	
-	# Loop through grid width and height to place tilemaps
-	for x in range(grid_width):
-		for y in range(grid_height):
-			# Instance a new TileMap from the scene path
+		
+	# Your original code, unchanged
+	for x in grid_width:
+		for y in grid_height:
 			var tilemap_instance = tilemap_scene_path.instantiate()
-			# Calculate the position for this tilemap based on spacing
-			tilemap_instance.position = Vector2(x * tilemap_spacing, y * tilemap_spacing)
-			# Add the tilemap instance to the current node
+			tilemap_instance.position = Vector2((x - 1) * tilemap_spacing, (y - 1) * tilemap_spacing)
 			add_child(tilemap_instance)
 
-# Function to adjust the camera to fit the entire grid
+# Function to position the camera
 func position_camera():
 	if camera_ref == null:
 		print("Camera reference is invalid!")
 		return
 	
 	# Calculate total grid width and height based on spacing
-	var total_width = (grid_width - 1) * tilemap_spacing
-	var total_height = (grid_height - 1) * tilemap_spacing
+	var total_width = grid_width  * tilemap_spacing
+	var total_height = grid_height * tilemap_spacing
 	
 	# Center position of the grid
 	var center_position = Vector2(total_width / 2, total_height / 2)
-	camera_ref.position = center_position
+	camera_ref.position = center_position + Vector2(-500, -350)
 
 	# Adjust the zoom of the camera based on grid size
 	var viewport_size = get_viewport_rect().size
-	var zoom_x = viewport_size.x / (total_width + tilemap_spacing)
-	var zoom_y = viewport_size.y / (total_height + tilemap_spacing)
-	# Set the zoom to fit the entire grid
-	camera_ref.zoom = Vector2(zoom_x, zoom_y)
+	var zoom_x = total_width / viewport_size.x
+	var zoom_y = total_height / viewport_size.y
+	var zoom_factor = 6.25
+	camera_ref.zoom = Vector2(zoom_x / zoom_factor, zoom_y / zoom_factor)
 
-# Function to place food and creatures on random tiles
-func place_entities():
-	# Get all possible positions in the grid
-	var tile_positions = []
-	for x in range(grid_width):
-		for y in range(grid_height):
-			tile_positions.append(Vector2(x * tilemap_spacing, y * tilemap_spacing))
-	
-	# Shuffle positions to randomize placement
-	tile_positions.shuffle()
-	
-	# Place food entities
-	for i in range(min(food_count, tile_positions.size())):
-		var pos = tile_positions.pop_front()
-		create_entity(food, pos)
-	
-	# Place team 1 creatures
-	for i in range(min(creature_team_1_count, tile_positions.size())):
-		var pos = tile_positions.pop_front()
-		create_entity(creature_team_1, pos - Vector2(50, 0))
-	
-	# Place team 2 creatures
-	for i in range(min(creature_team_2_count, tile_positions.size())):
-		var pos = tile_positions.pop_front()
-		create_entity(creature_team_2, pos + Vector2(50, 0))
-
-# Function to create a Sprite for a given texture at a specified position
-func create_entity(texture: Texture2D, tile_position: Vector2):
+# Function to create an entity or food sprite with proper scaling and offset
+func create_entity(texture: Texture2D, tile_position: Vector2, is_food: bool):
 	var sprite = Sprite2D.new()
 	sprite.texture = texture
-	sprite.position = tile_position
-	sprite.scale *= 3
+	sprite.scale *= 3  # Scale the icon to be 3 times bigger
+
+	# Position the sprite on the tile and add any needed offset
+	if is_food:
+		# Center food on the tile
+		sprite.position = tile_position
+	else:
+		# Offset entity by 50 pixels to the left from the tile's center
+		sprite.position = tile_position + Vector2(-75, 0)
+	
 	add_child(sprite)

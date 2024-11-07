@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bmfswe6jyw1e2"]
 
-[ext_resource type="Script" path="res://ProcessMapData.gd" id="1_gcj2a"]
+[ext_resource type="Script" path="res://Code/ProcessMapData.gd" id="1_gcj2a"]
 
 [node name="ProcessMapData" type="Node"]
 script = ExtResource("1_gcj2a")
