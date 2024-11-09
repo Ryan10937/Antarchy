@@ -19,7 +19,7 @@ def run_episode(grid_world: world,episode,config):
       grid_world.log('Breaking wait, timeout reached')
       break
     waiting_count+=1
-    time.sleep(1)
-  grid_world.clean_state_logs()
+    # time.sleep(1)
+  # grid_world.clean_state_logs()
 
     
