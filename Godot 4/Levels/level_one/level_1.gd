@@ -4,6 +4,8 @@ extends Node2D
 @export var food_texture: Texture2D
 @export var creature_texture: Texture2D
 
+@export var ant_container: Node
+
 # Variables to set the grid dimensions and spacing
 var grid_width: int = 0
 var grid_height: int = 0
@@ -18,6 +20,11 @@ var food_positions: Array[Vector2] = []
 
 # Path to the TileMap scene to instantiate
 @export var tilemap_scene_path: PackedScene
+
+func clear_screen():
+	for child in ant_container.get_children():
+		print("Deleting child:", child)
+		child.free()
 
 # Function to set the grid size
 func set_grid_size(x_length: int, y_length: int):
@@ -47,15 +54,15 @@ func place_entities():
 		create_entity(creature_texture, tile_pos, false)
 
 # Function to spawn the grid (no changes made here as per your request)
-func spawn_tilemap_grid(grid_width: int, grid_height: int):
+func spawn_tilemap_grid(x_grid_width: int, x_grid_height: int):
 	# Ensure tilemap_scene_path is valid
 	if tilemap_scene_path == null:
 		print("Tilemap scene path is invalid!")
 		return
 		
 	# Your original code, unchanged
-	for x in grid_width:
-		for y in grid_height:
+	for x in x_grid_width:
+		for y in x_grid_height:
 			var tilemap_instance = tilemap_scene_path.instantiate()
 			tilemap_instance.position = Vector2((x - 1) * tilemap_spacing, (y - 1) * tilemap_spacing)
 			add_child(tilemap_instance)
@@ -95,4 +102,4 @@ func create_entity(texture: Texture2D, tile_position: Vector2, is_food: bool):
 		# Offset entity by 50 pixels to the left from the tile's center
 		sprite.position = tile_position + Vector2(-75, 0)
 	
-	add_child(sprite)
+	ant_container.add_child(sprite)

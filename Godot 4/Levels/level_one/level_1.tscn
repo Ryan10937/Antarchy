@@ -1,17 +1,20 @@
 [gd_scene load_steps=5 format=3 uid="uid://dpnenjm22thdy"]
 
 [ext_resource type="Script" path="res://Levels/level_one/level_1.gd" id="1_s10u3"]
-[ext_resource type="PackedScene" uid="uid://0ub84thmiv3h" path="res://Scenes/plain_tile.tscn" id="2_6a8j5"]
-[ext_resource type="Texture2D" uid="uid://bk2jlxifwgtwy" path="res://Assets/Icons/1 Icons/9/Skillicon9_16.png" id="2_6khey"]
-[ext_resource type="Texture2D" uid="uid://b2am0et1chx3h" path="res://Assets/Icons/1 Icons/8/Skillicon8_29.png" id="3_a41o0"]
+[ext_resource type="Texture2D" uid="uid://btcfrvee3m44p" path="res://Assets/Icons/1 Icons/5/Skillicon5_16.png" id="2_5wemj"]
+[ext_resource type="Texture2D" uid="uid://b2am0et1chx3h" path="res://Assets/Icons/1 Icons/8/Skillicon8_29.png" id="3_oc8gh"]
+[ext_resource type="PackedScene" uid="uid://0ub84thmiv3h" path="res://Scenes/plain_tile.tscn" id="4_23j64"]
 
-[node name="Level_1" type="Node2D" node_paths=PackedStringArray("camera_ref")]
+[node name="Level_1" type="Node2D" node_paths=PackedStringArray("ant_container", "camera_ref")]
 script = ExtResource("1_s10u3")
-food_texture = ExtResource("2_6khey")
-creature_texture = ExtResource("3_a41o0")
+food_texture = ExtResource("2_5wemj")
+creature_texture = ExtResource("3_oc8gh")
+ant_container = NodePath("AntContainer")
 camera_ref = NodePath("Camera2D")
-tilemap_scene_path = ExtResource("2_6a8j5")
+tilemap_scene_path = ExtResource("4_23j64")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(2, 7)
 zoom = Vector2(0.465, 0.465)
+
+[node name="AntContainer" type="Node" parent="."]
