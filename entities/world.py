@@ -7,6 +7,9 @@ import time
 from datetime import datetime
 
 from entities.ant import ant
+from entities.soldier import soldier
+from entities.runner import runner
+from entities.scout import scout
 from entities.food import food
 class spot():
   def __init__(self,position):
@@ -40,12 +43,12 @@ class world():
     self.log_limit = 1000
     self.size = [x_size,y_size]
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
-    self.ants = [ant(
-      position=[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
-      map_size_x=x_size,
-      map_size_y=y_size,
-      display_character='8',
-      ID = ID,
+    self.ants = [self.roll_for_species({
+      'position':[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
+      'map_size_x':x_size,
+      'map_size_y':y_size,
+      'display_character':'8',
+      'ID' : ID,}
                             ) 
                      for ID in range(num_ants)]
     self.food = [food(
@@ -59,6 +62,21 @@ class world():
     self.graveyard = []
     self.place_ants()
     self.place_food()
+
+  def roll_for_species(self,attributes:dict):
+    #make species name to class dictionary
+    name_to_class = {
+      'soldier':soldier,
+      'scout':scout,
+      'runner':runner,
+      }
+    possible_species = 
+    #get probability for each species
+
+    
+    
+    
+    return ant(**attributes) 
 
   def render(self):
     print(self.grid)

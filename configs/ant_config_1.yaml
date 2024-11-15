@@ -10,4 +10,9 @@ food: 3
 
 ants: 5
 
+species:
+  - soldier
+  - scout
+  - runner
+
 
