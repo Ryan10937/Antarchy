@@ -8,4 +8,6 @@ class scout(ant):
     self.max_movement_speed = 2
     self.spawn_rate = 5
     self.name = 'scout'
+    self.display_character='7'
+
     

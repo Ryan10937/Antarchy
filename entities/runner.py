@@ -8,5 +8,6 @@ class runner(ant):
     self.max_movement_speed = 2
     self.spawn_rate = 6
     self.name = 'runner'
+    self.display_character='9'
     
     
