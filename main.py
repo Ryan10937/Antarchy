@@ -18,6 +18,7 @@ if __name__ == '__main__':
     y_size=config['grid_size_y'],
     num_ants=config['ants'],
     num_food=config['food'],
+    config=config
     )
   
   for episode in range(config['episodes']):

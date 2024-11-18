@@ -13,6 +13,9 @@ class ant(entity):
     # self.gender = True
     # self.attractiveness_score = 0
 
+  
+
+
   def get_stats(self):
     stats = super().get_stats()
     stats.update({

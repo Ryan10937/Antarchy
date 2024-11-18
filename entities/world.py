@@ -7,6 +7,9 @@ import time
 from datetime import datetime
 
 from entities.ant import ant
+from entities.soldier import soldier
+from entities.runner import runner
+from entities.scout import scout
 from entities.food import food
 class spot():
   def __init__(self,position):
@@ -33,19 +36,26 @@ class spot():
       self.character = 'X'
 
 class world():
-  def __init__(self,x_size,y_size,num_ants,num_food):
+  def __init__(self,x_size,y_size,num_ants,num_food,config):
+    self.config = config
     self.state_log_folder = './logs/state/'
     self.log_folder = './logs/log/'
     self.sleep_time = 1#seconds
     self.log_limit = 1000
     self.size = [x_size,y_size]
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
-    self.ants = [ant(
-      position=[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
-      map_size_x=x_size,
-      map_size_y=y_size,
-      display_character='8',
-      ID = ID,
+    self.spawn_list = self.make_spawn_list({
+      'position':[-1,-1],
+      'map_size_x':-1,
+      'map_size_y':-1,
+      'display_character':'-1',
+      'ID' : -1,})
+    self.ants = [self.roll_for_species({
+      'position':[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
+      'map_size_x':x_size,
+      'map_size_y':y_size,
+      'display_character':'8',
+      'ID' : ID,}
                             ) 
                      for ID in range(num_ants)]
     self.food = [food(
@@ -60,6 +70,36 @@ class world():
     self.place_ants()
     self.place_food()
 
+  def make_spawn_list(self,attributes:dict):#change this to "make_spawn_list"? and then use the spawn list to roll for species
+    #make species name to class dictionary
+    name_to_class = {
+      'soldier':soldier,
+      'scout':scout,
+      'runner':runner,
+      }
+    possible_species = self.config['species']
+    #get probability for each species
+    spawn_rates = {}
+    for name,class_type in name_to_class.items():
+      tmp = class_type(**attributes)
+      spawn_rates[name] = tmp.spawn_rate
+
+    #make spawn_list
+    spawn_list=[]
+    for name,rate in spawn_rates.items():
+      if name not in possible_species:
+        continue
+      for i in range(rate):
+        spawn_list.append(name)
+    return spawn_list
+  def roll_for_species(self,attributes:dict):
+    name_to_class = {
+      'soldier':soldier,
+      'scout':scout,
+      'runner':runner,
+      }
+    name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
+    return name_to_class[name](**attributes)
   def render(self):
     print(self.grid)
 
