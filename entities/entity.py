@@ -21,6 +21,7 @@ class entity():
     self.wall_bumps = 0
 
     self.log_folder = './logs/log/'
+    self.name = ''
 
   def get_stats(self):
     return {

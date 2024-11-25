@@ -101,6 +101,7 @@ class world():
     name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
     return name_to_class[name](**attributes)
   def render(self):
+    np.set_printoptions(threshold=np.inf)
     print(self.grid)
 
   def place_ants(self):

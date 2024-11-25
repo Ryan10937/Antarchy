@@ -10,6 +10,7 @@ class ant(entity):
     self.is_food = False
     self.food_eaten = 0
     self.ants_eaten = 0
+    self.name = ''
     # self.gender = True
     # self.attractiveness_score = 0
 
@@ -28,13 +29,29 @@ class ant(entity):
   def fight(self,entity_list):
     #this isnt great, it will attack food or the other entity with equal chance
     #it will do for now but i would like to change it later
-    if len(entity_list)>1:
-      random_target = random.randint(0,len(entity_list)-1)
-    else:
+
+    #get mask of enemies
+    enemy_idx = [i for i,x in enumerate(entity_list) if x.name!=self.name]
+
+    #get random selection of enemies
+    if len(enemy_idx)>1:
+      random_target = random.randint(0,len(enemy_idx)-1)
+      self.attack(entity_list[enemy_idx[random_target]])
+      return False
+    elif len(enemy_idx)==1:
       random_target=0
-    self.attack(entity_list[random_target])
-    
+      self.attack(entity_list[enemy_idx[random_target]])
+      return False
+    return True
   def attack(self,entity):
+
+    #unit tests
+    if self.ID == entity.ID and entity.is_food == False:
+      print('Targeting self')
+
+    if self.name==entity.name:
+      print("Targeting same team!")
+
     entity.health -= self.damage
     entity.log(f'{self.ID} attacking {entity.ID} for {entity.damage}')
     if entity.health <= 0:
@@ -46,7 +63,9 @@ class ant(entity):
 
   def act(self,grid):
     if len(grid[self.position[0],self.position[1]].entities)>1:
-      self.fight(grid[self.position[0],self.position[1]].entities)
+      done_fighting = self.fight(grid[self.position[0],self.position[1]].entities)
+      if done_fighting:
+        self.move(grid)
     else:
       self.move(grid)
   
