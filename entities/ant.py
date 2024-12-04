@@ -2,6 +2,9 @@ from entities.entity import entity
 import tensorflow as tf
 import os
 import random
+import pandas as pd
+import numpy as np
+import csv
 class ant(entity):
   def __init__(self,position,map_size_x,map_size_y,display_character,ID):
     super().__init__(position,map_size_x,map_size_y,display_character,ID)
@@ -74,18 +77,40 @@ class ant(entity):
 
   def train_model(self):
     #using the last n recorded observation states, train a batch
+    with open(self.history_path, mode='r', newline='', encoding='utf-8') as csv_file:
+      dump = csv.reader(csv_file)
+      history = [row for row in dump] 
     pass
   def infer(self,obs):
     #using observation, make a decision.
+    predicted_rewards = self.model.predict(obs)
 
+    #add epsilon randomness and decay
+    if random.random(0,1) < self.eps:
+      action = random.randint(0,self.action_space)
+    else:
+      action = np.argmax(predicted_rewards)
+
+    reward = self.get_reward(obs,action)
     #store observation, decision, and reward for future training
-      #append to CSV within the model folder. 
-    pass
-  def get_reward(self,obs):
+      #append to CSV within the model folder.
+    self.save_history([obs,action,reward])#doing this every time might be too slow, maybe gather and save in batches?
+  def save_history(self,list_of_history):
+    if os.path.exists(self.history_path):
+      self.history = pd.read_csv(self.history_path)
+    else:
+      with open(self.history_path, mode='a', newline='', encoding='utf-8') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerows(list_of_history)
+  def get_reward(self,obs,action):
     #Get a small living reward 
       #based on timestep?
     #Get a large-ish negative reward for dying
     #Get a reward for food
     #Add some amount to it depending on species
       #in each species, define a "add species reward" method
-    pass
+    reward = 0
+    if self.health > 0:
+      reward +=1
+    reward += self.get_species_reward(obs,action)
+    

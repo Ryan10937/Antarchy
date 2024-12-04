@@ -10,6 +10,9 @@ class runner(ant):
     self.name = 'runner'
     self.display_character='9'
     self.model_path = 'brains/runner/novice.keras'
+    self.history_path = 'history/runner/history.csv'
     self.obs_range = 3
     
+  def get_species_reward(self,obs,action):
+    return self.food_eaten #this might be confusing because its total food eaten, not food eaten this turn
     

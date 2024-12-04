@@ -10,7 +10,10 @@ class soldier(ant):
     self.name = 'soldier'
     self.display_character='0'
     self.model_path = 'brains/solder/novice.keras'
+    self.history_path = 'history/solder/history.csv'
     self.obs_range = 2
 
+  def get_species_reward(self,obs,action):
+    return self.ants_eaten
     
     
