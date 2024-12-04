@@ -16,13 +16,12 @@ class ant(entity):
     self.food_eaten = 0
     self.ants_eaten = 0
     self.action_space = 5 #5 action choices, cardinal directions and no movement
+    self.eps = 0.2
     # self.gender = True
     # self.attractiveness_score = 0
 
     self.get_model()
   
-
-
   def get_stats(self):
     stats = super().get_stats()
     stats.update({
@@ -73,14 +72,22 @@ class ant(entity):
       ])
       opt = tf.keras.optimizers.Adam(learning_rate=0.01)
       self.model.compile(optimizer=opt, loss='mse')
-      
 
   def train_model(self):
     #using the last n recorded observation states, train a batch
     with open(self.history_path, mode='r', newline='', encoding='utf-8') as csv_file:
       dump = csv.reader(csv_file)
-      history = [row for row in dump] 
-    pass
+      history = [row for row in dump]
+
+    #transform history 
+      #from [obs,action,reward] -> [[obs],action with reward @ argmax] 
+    y = np.array([[reward if i == np.argmax(action) else a for i,a in enumerate(action)] for obs,action,reward in history]) 
+    X = np.array([obs for obs,action,reward in history])
+    self.model.fit(X,y)
+
+    self.model.save(self.model_path)
+
+
   def infer(self,obs):
     #using observation, make a decision.
     predicted_rewards = self.model.predict(obs)
