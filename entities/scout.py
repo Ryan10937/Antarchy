@@ -8,6 +8,8 @@ class scout(ant):
     self.max_movement_speed = 2
     self.spawn_rate = 5
     self.name = 'scout'
-    self.display_character='7'
+    self.display_character='|'
+    self.model_path = 'brains/scout/novice.keras'
+    self.obs_range = 5
 
     

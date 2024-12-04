@@ -9,5 +9,7 @@ class runner(ant):
     self.spawn_rate = 6
     self.name = 'runner'
     self.display_character='9'
+    self.model_path = 'brains/runner/novice.keras'
+    self.obs_range = 3
     
     

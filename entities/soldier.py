@@ -8,5 +8,9 @@ class soldier(ant):
     self.max_movement_speed = 2
     self.spawn_rate = 2
     self.name = 'soldier'
+    self.display_character='0'
+    self.model_path = 'brains/solder/novice.keras'
+    self.obs_range = 2
+
     
     
