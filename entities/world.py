@@ -175,6 +175,11 @@ class world():
     for species in unique_species:
       species.train_model()#this method covers loading, training, and saving model to appropriate path
 
-
-
+  def check_for_end_conditions(self):
+    alive_ants = [ant.name for ant in self.ants if ant.is_alive]
+    unique_species_alive = np.unique(alive_ants)
+    if len(unique_species_alive)>1:
+      return False
+    else:
+      return True
 

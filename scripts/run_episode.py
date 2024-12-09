@@ -11,7 +11,7 @@ def run_episode(grid_world: world,episode,config):
     grid_world.log_state(episode,step,step==config['num_timesteps']-1)
 
     grid_world.train_models()
-    if len(grid_world.graveyard) == len(grid_world.ants)-1:
+    if grid_world.check_for_end_conditions():
       break
   # waiting_count=0
   # waiting_timeout=10

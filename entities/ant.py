@@ -16,7 +16,7 @@ class ant(entity):
     self.food_eaten = 0
     self.ants_eaten = 0
     self.action_space = 5 #5 action choices, cardinal directions and no movement
-    self.eps = 0.2
+    self.eps = 0.5
     # self.gender = True
     # self.attractiveness_score = 0
     self.overwrite_history=False #eventually move this to config
