@@ -4,7 +4,7 @@ import os
 import random
 import pandas as pd
 import numpy as np
-import csv
+import jsonlines
 class ant(entity):
   def __init__(self,position,map_size_x,map_size_y,display_character,ID):
     super().__init__(position,map_size_x,map_size_y,display_character,ID)
@@ -19,7 +19,7 @@ class ant(entity):
     self.eps = 0.2
     # self.gender = True
     # self.attractiveness_score = 0
-
+    self.overwrite_history=False #eventually move this to config
     self.get_model()
   
   def get_stats(self):
@@ -64,10 +64,12 @@ class ant(entity):
 
     #if not, create it
     else:
-      input_shape = (None, 1 , self.obs_range[0], self.obs_range[1],1)
+      input_shape = (None,self.obs_range+2,self.obs_range+2)
       self.model = tf.keras.models.Sequential([
         tf.keras.layers.InputLayer(input_shape=input_shape[1:]),
-        tf.keras.layers.SimpleRNN(64, return_sequences=False),
+        tf.keras.layers.Flatten(),
+        # tf.keras.layers.SimpleRNN(64, return_sequences=False),
+        tf.keras.layers.Dense(64),#i dont need an RNN because the training isnt sequential, its for all ants
         tf.keras.layers.Dense(self.action_space)  # Output Q-values for each action
       ])
       opt = tf.keras.optimizers.Adam(learning_rate=0.01)
@@ -75,40 +77,41 @@ class ant(entity):
 
   def train_model(self):
     #using the last n recorded observation states, train a batch
-    with open(self.history_path, mode='r', newline='', encoding='utf-8') as csv_file:
-      dump = csv.reader(csv_file)
-      history = [row for row in dump]
+    with jsonlines.open(self.history_path, mode='r') as f:
+      history = [obj for obj in f]
 
     #transform history 
       #from [obs,action,reward] -> [[obs],action with reward @ argmax] 
-    y = np.array([[reward if i == np.argmax(action) else a for i,a in enumerate(action)] for obs,action,reward in history]) 
-    X = np.array([obs for obs,action,reward in history])
-    self.model.fit(X,y)
+    y = np.array([[dct['reward'] if i == np.argmax(dct['action']) else a for i,a in enumerate(range(self.action_space))] for dct in history]) 
+    X = np.array([dct['obs'] for dct in history])
+    X=np.squeeze(X, axis=0)
+    self.model.fit(X,y,verbose=0)
 
     self.model.save(self.model_path)
 
 
   def infer(self,obs):
     #using observation, make a decision.
-    predicted_rewards = self.model.predict(obs)
+    predicted_rewards = self.model.predict(obs,verbose=0)
 
     #add epsilon randomness and decay
-    if random.random(0,1) < self.eps:
-      action = random.randint(0,self.action_space)
+    if random.random() < self.eps:
+      action = random.randint(0,self.action_space-1)
     else:
       action = np.argmax(predicted_rewards)
 
     reward = self.get_reward(obs,action)
     #store observation, decision, and reward for future training
       #append to CSV within the model folder.
-    self.save_history([obs,action,reward])#doing this every time might be too slow, maybe gather and save in batches?
-  def save_history(self,list_of_history):
-    if os.path.exists(self.history_path):
-      self.history = pd.read_csv(self.history_path)
+    self.save_history({'obs':obs.tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
+    return action
+  def save_history(self,history_dict):
+    if os.path.exists(self.history_path) or self.overwrite_history==True:
+      with jsonlines.open(self.history_path, mode='w') as f:
+        f.write(history_dict)
     else:
-      with open(self.history_path, mode='a', newline='', encoding='utf-8') as csv_file:
-        writer = csv.writer(csv_file)
-        writer.writerows(list_of_history)
+      with jsonlines.open(self.history_path, mode='a') as f:
+        f.write(history_dict)
   def get_reward(self,obs,action):
     #Get a small living reward 
       #based on timestep?
@@ -120,4 +123,35 @@ class ant(entity):
     if self.health > 0:
       reward +=1
     reward += self.get_species_reward(obs,action)
+    return reward
+  def decide_direction(self,grid):
+    '''
+    Method to decide which way an entity should move
+    Uses self.model to decide action
+    '''
+    direction = self.infer(self.get_observable_space(grid))
+    return direction
+
+  def get_observable_space(self,grid):
+    xlow = self.position[0]-self.obs_range
+    xhigh = self.position[0]+self.obs_range
+
+    ylow = self.position[1]-self.obs_range
+    yhigh = self.position[1]+self.obs_range
+
+    #somehow rectify observable space if its outside the range of the map
+      #maybe instead of getting a slice of the map, "query" the map at each spot to fill
+      #a predefined matrix
+      #and have a special wall character to denote it being at a wall
+    obs = np.array([[-1 for y in range(self.obs_range+2)] for x in range(self.obs_range+2)])
+    for i,x in enumerate(range(xlow,xhigh+1)):
+      for j,y in enumerate(range(ylow,yhigh+1)):
+        if x>=len(grid) or y>=len(grid[0]) or x<0 or y<0:
+          obs[i,j] = ord('#')
+        else:
+          obs[i,j] = ord(grid[x,y].character)
+    if len(obs) == 0:
+      print('observable space is none')
+    return np.array([obs])
+  
     

@@ -129,8 +129,8 @@ class world():
     time_string = datetime.now().strftime('%d_%H_%M_%S_%f')
     with open(f'{self.state_log_folder}state_at_{time_string}.json','w') as f:
       json.dump(entity_dict,f)
-    if len(os.listdir(self.state_log_folder))>=self.log_limit:
-      time.sleep(self.sleep_time)
+    # if len(os.listdir(self.state_log_folder))>=self.log_limit:
+    #   time.sleep(self.sleep_time)
   def clean_state_logs(self):
     shutil.rmtree(self.state_log_folder)
     os.makedirs(self.state_log_folder) 
@@ -163,6 +163,17 @@ class world():
   def log(self,message):
     with open(self.log_folder+'log.log','a') as f:
       f.write(message+'\n')
+
+
+  def train_models(self):
+    unique_species_names = []
+    unique_species = []
+    for ant in self.ants:
+      if ant.name not in unique_species_names:
+        unique_species_names.append(ant.name)
+        unique_species.append(ant)
+    for species in unique_species:
+      species.train_model()#this method covers loading, training, and saving model to appropriate path
 
 
 

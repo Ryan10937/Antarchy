@@ -1,7 +1,6 @@
 from entities.ant import ant
 class runner(ant):
   def __init__(self,position,map_size_x,map_size_y,display_character,ID):
-    super().__init__(position,map_size_x,map_size_y,display_character,ID)
     self.damage = 10
     self.max_health = 100
     self.health = 100
@@ -12,6 +11,7 @@ class runner(ant):
     self.model_path = 'brains/runner/novice.keras'
     self.history_path = 'history/runner/history.csv'
     self.obs_range = 3
+    super().__init__(position,map_size_x,map_size_y,display_character,ID)
     
   def get_species_reward(self,obs,action):
     return self.food_eaten #this might be confusing because its total food eaten, not food eaten this turn

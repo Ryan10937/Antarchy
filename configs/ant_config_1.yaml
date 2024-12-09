@@ -2,13 +2,13 @@
 num_timesteps: 1000
 
 grid_size_x: 10
-grid_size_y: 8
+grid_size_y: 10
 
 episodes: 2
 
 food: 3
 
-ants: 5
+ants: 15
 
 species:
   - soldier

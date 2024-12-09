@@ -3,8 +3,11 @@ import argparse
 import yaml
 from scripts.run_episode import run_episode
 from entities.world import world
+import tensorflow as tf
 if __name__ == '__main__':
 
+  print(tf.config.list_physical_devices('GPU'))
+  tf.config.run_functions_eagerly(True)
   parser = argparse.ArgumentParser()
   parser.add_argument('--config',type=str)
   args = parser.parse_args()
