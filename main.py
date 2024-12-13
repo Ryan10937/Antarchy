@@ -7,7 +7,7 @@ import tensorflow as tf
 if __name__ == '__main__':
 
   print(tf.config.list_physical_devices('GPU'))
-  tf.config.run_functions_eagerly(True)
+  # tf.config.run_functions_eagerly(True)#makes no difference
   parser = argparse.ArgumentParser()
   parser.add_argument('--config',type=str)
   args = parser.parse_args()
@@ -25,6 +25,13 @@ if __name__ == '__main__':
     )
   
   for episode in range(config['episodes']):
+    grid_world = world(
+                x_size=config['grid_size_x'],
+                y_size=config['grid_size_y'],
+                num_ants=config['ants'],
+                num_food=config['food'],
+                config=config
+                )
     run_episode(grid_world,episode,config)
 
 

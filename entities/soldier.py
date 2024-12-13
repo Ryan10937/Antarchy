@@ -11,7 +11,7 @@ class soldier(ant):
     self.model_path = 'brains/soldier/novice.keras'
     self.history_path = 'history/soldier/history.csv'
     self.obs_range = 2
-    super().__init__(position,map_size_x,map_size_y,display_character,ID)
+    super().__init__(position,map_size_x,map_size_y,self.display_character,ID)
 
   def get_species_reward(self,obs,action):
     return self.ants_eaten

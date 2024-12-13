@@ -67,6 +67,9 @@ class world():
                             ) 
                      for ID in range(num_food)]
     self.graveyard = []
+    self.num_ant_teams = len(config['species'])
+    self.same_team_count = 0
+    self.timestep = 0
     self.place_ants()
     self.place_food()
 
@@ -149,6 +152,7 @@ class world():
             self.grid[x,y].remove_entity(ant)
 
   def entity_turns(self):
+    self.timestep+=1
     for ant in self.ants:
       if ant.health <= 0:
         self.grid[ant.position[0],ant.position[1]].remove_entity(ant)
@@ -174,12 +178,70 @@ class world():
         unique_species.append(ant)
     for species in unique_species:
       species.train_model()#this method covers loading, training, and saving model to appropriate path
+  def save_history(self):
+    for ant in self.ants:
+      ant.save_history()
 
   def check_for_end_conditions(self):
     alive_ants = [ant.name for ant in self.ants if ant.is_alive]
     unique_species_alive = np.unique(alive_ants)
+    self.previous_num_ant_teams = self.num_ant_teams
+    self.num_ant_teams = len(unique_species_alive)
+
+    if self.previous_num_ant_teams == self.num_ant_teams:
+      self.same_team_count+=1
+    else:
+      self.same_team_count = 0
+    
+    if self.same_team_count > 10 and len(alive_ants)<5:
+      return True
+
     if len(unique_species_alive)>1:
       return False
     else:
       return True
+
+  def get_stats(self):
+    '''
+    Returns a dictionary of stats about the episode:
+      timesteps: int
+      met_end_conditions: bool
+      mean_ant_inference_time: float
+      range_ant_inference_time: (float,float)
+      food_eaten: dict[species]:int
+      ants_eaten: dict[species]:int
+
+    '''
+
+    episode_stats = {
+      'timesteps':self.timestep,
+      'ants_eaten':{k:[] for k in self.config['species']},
+      'food_eaten':{k:[] for k in self.config['species']},
+      'inference_time_mean':[],
+      'inference_time_range':[],
+      } 
+    for ant in self.ants:
+
+      ant_stats = ant.get_stats()
+      # print(ant.ID,ant.name,ant_stats['inference_time_arr'])
+      episode_stats['ants_eaten'][ant.name].append(ant_stats['ants_eaten'])
+      episode_stats['food_eaten'][ant.name].append(ant_stats['food_eaten'])
+      if len(ant_stats['inference_time_arr']) > 0:
+        episode_stats['inference_time_mean'].append(np.mean(ant_stats['inference_time_arr']))
+        episode_stats['inference_time_range'].append([np.min(ant_stats['inference_time_arr']),np.max(ant_stats['inference_time_arr'])])
+      else:
+        episode_stats['inference_time_mean'].append(np.nan)
+        episode_stats['inference_time_range'].append([np.nan,np.nan])
+
+    episode_stats['ants_eaten'] = {k:np.mean(v) for k,v in episode_stats['ants_eaten'].items()}
+    episode_stats['food_eaten'] = {k:np.mean(v) for k,v in episode_stats['food_eaten'].items()}
+    episode_stats['inference_time_mean'] = np.mean(episode_stats['inference_time_mean'])
+    episode_stats['inference_time_range'] = [np.min(np.array(episode_stats['ants_eaten']).flatten()),np.max(np.array(episode_stats['ants_eaten']).flatten())]
+    return episode_stats
+
+
+
+
+
+
 
