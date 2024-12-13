@@ -57,11 +57,11 @@ class ant(entity):
       if entity.is_food==False:
         self.ants_eaten+=1
 
-  def act(self,grid):
+  def act(self,grid,action):
     if len(grid[self.position[0],self.position[1]].entities)>1:
       self.fight(grid[self.position[0],self.position[1]].entities)
     else:
-      self.move(grid)
+      self.move(grid,action)
 
 
   def get_model(self):
@@ -90,32 +90,32 @@ class ant(entity):
       #from [obs,action,reward] -> [[obs],action with reward @ argmax] 
     y = np.array([[dct['reward'] if i == np.argmax(dct['action']) else a for i,a in enumerate(range(self.action_space))] for dct in history]) 
     X = np.array([dct['obs'] for dct in history])
-    # X=np.squeeze(X, axis=0)
     self.model.fit(X,y,verbose=0)
 
     self.model.save(self.model_path)
 
 
-  def infer(self,obs):
-    # print('|',end='')
+  def infer(self,obs_list):
+    obs_list = tf.reshape(obs_list,(-1,self.max_input_size,self.max_input_size))
+
     #using observation, make a decision.
     infer_start_time=time.time()
-    predicted_rewards = self.model.predict(obs,verbose=0)
-    self.inference_time_arr.append(time.time()-infer_start_time)
+    predicted_rewards = self.model.predict(obs_list,verbose=0)
+    infer_end_time = time.time()
+    self.inference_time_arr.append(infer_end_time-infer_start_time)
 
+    actions=[]
+    for i,obs in enumerate(obs_list):
     #add epsilon randomness and decay
-    if random.random() < self.eps:
-      action = random.randint(0,self.action_space-1)
-    else:
-      action = np.argmax(predicted_rewards)
-
-    reward = self.get_reward(obs,action)
-    #store observation, decision, and reward for future training
-      #append to CSV within the model folder.
-    # self.save_history({'obs':obs.tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
-    # self.save_history({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
-    self.history.append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
-    return action
+      if random.random() < self.eps:
+        action = random.randint(0,self.action_space-1)
+      else:
+        action = np.argmax(predicted_rewards[i])
+      actions.append(action)
+      reward = self.get_reward(obs,action)
+      #store observation, decision, and reward for future training
+      self.history.append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
+    return actions
   
   def save_history(self):
     for history_dict in self.history:
@@ -137,13 +137,13 @@ class ant(entity):
       reward +=1
     reward += self.get_species_reward(obs,action)
     return reward
-  def decide_direction(self,grid):
+  def decide_direction(self,grid,action):
     '''
     Method to decide which way an entity should move
     Uses self.model to decide action
     '''
-    direction = self.infer(self.get_observable_space(grid))
-    return direction
+    # direction = self.infer(self.get_observable_space(grid))
+    return action
 
   def get_observable_space(self,grid):
 

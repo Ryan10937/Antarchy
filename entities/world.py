@@ -68,6 +68,12 @@ class world():
                      for ID in range(num_food)]
     self.graveyard = []
     self.num_ant_teams = len(config['species'])
+    self.species_to_class = {
+      'soldier':[ant for ant in self.ants if ant.name=='soldier'][0],
+      'runner':[ant for ant in self.ants if ant.name=='runner'][0],
+      'scout':[ant for ant in self.ants if ant.name=='scout'][0],
+      }
+
     self.same_team_count = 0
     self.timestep = 0
     self.place_ants()
@@ -153,17 +159,38 @@ class world():
 
   def entity_turns(self):
     self.timestep+=1
-    for ant in self.ants:
+    actions = self.get_entity_decisions()
+    for i,ant in enumerate(self.ants):
       if ant.health <= 0:
         self.grid[ant.position[0],ant.position[1]].remove_entity(ant)
         continue
       prev_position_x = ant.position[0]
       prev_position_y = ant.position[1]
-      ant.act(self.grid)
+      ant.act(self.grid,actions[i])
       self.grid[prev_position_x,prev_position_y].remove_entity(ant)
       self.grid[ant.position[0],ant.position[1]].add_entity(ant)
     self.cleanup()
 
+  def get_entity_decisions(self):
+    #get observations for all ants
+    observations = [ant.get_observable_space(self.grid) for ant in self.ants] 
+    actions = [-1 for obs in observations]
+    for species in self.config['species']:#per species
+      #make a mask per species
+      species_mask = [1 if ant.name==species else 0 for ant in self.ants]
+
+      #call each model with obs x mask
+      species_obs = [obs for i,obs in enumerate(observations) if species_mask[i]==1]
+      #store action results at new_list x mask
+      species_actions = self.species_to_class[species].infer(species_obs)#use species-specific model on batch of species_obs
+      
+      # actions = [species_obs if species_mask[i]==1 else for a in actions]
+      count = 0
+      for i,action in enumerate(actions):
+        if species_mask[i]==1:
+          actions[i]=species_actions[count]
+          count+=1
+    return actions
   def log(self,message):
     with open(self.log_folder+'log.log','a') as f:
       f.write(message+'\n')
@@ -223,15 +250,11 @@ class world():
     for ant in self.ants:
 
       ant_stats = ant.get_stats()
-      # print(ant.ID,ant.name,ant_stats['inference_time_arr'])
       episode_stats['ants_eaten'][ant.name].append(ant_stats['ants_eaten'])
       episode_stats['food_eaten'][ant.name].append(ant_stats['food_eaten'])
       if len(ant_stats['inference_time_arr']) > 0:
         episode_stats['inference_time_mean'].append(np.mean(ant_stats['inference_time_arr']))
         episode_stats['inference_time_range'].append([np.min(ant_stats['inference_time_arr']),np.max(ant_stats['inference_time_arr'])])
-      else:
-        episode_stats['inference_time_mean'].append(np.nan)
-        episode_stats['inference_time_range'].append([np.nan,np.nan])
 
     episode_stats['ants_eaten'] = {k:np.mean(v) for k,v in episode_stats['ants_eaten'].items()}
     episode_stats['food_eaten'] = {k:np.mean(v) for k,v in episode_stats['food_eaten'].items()}

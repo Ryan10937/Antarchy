@@ -1,5 +1,5 @@
 ---
-num_timesteps: 10
+num_timesteps: 1000
 
 grid_size_x: 15
 grid_size_y: 15
