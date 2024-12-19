@@ -13,13 +13,16 @@ def run_episode(grid_world: world,episode,config):
     grid_world.log_state(episode,step,step==config['num_timesteps']-1)
     timestep_end = time.time()
     timestep_times.append(timestep_end-timestep_start)
+    print('len(grid_world.ants):',len(grid_world.ants))
     if grid_world.check_for_end_conditions():
       break
   print('Average_episode_time',np.mean(timestep_times))
   grid_world.save_history()
   grid_world.train_models()
-  for k,v in grid_world.get_stats().items():
-    print(f'{k}:{v}')
+  episode_stats = grid_world.get_stats() 
+  # for k,v in episode_stats.items():
+  #   print(f'{k}:{v}')
+  return episode_stats
   # waiting_count=0
   # waiting_timeout=10
   # while len(os.listdir(grid_world.state_log_folder)) > 1:

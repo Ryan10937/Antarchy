@@ -24,7 +24,9 @@ class spot():
   def remove_entity(self,entity_to_remove):
     for idx,ent in enumerate(self.entities):
       if ent.ID == entity_to_remove.ID:
-        self.entities.pop(idx)
+        removed_item = self.entities.pop(idx)
+        if removed_item.ID != ent.ID:
+          print('Attempted to remove',removed_item,'but removed',ent,'instead')
     self.update_display_char()
     
   def update_display_char(self):
@@ -32,9 +34,15 @@ class spot():
       self.character = ' '
     elif len(self.entities) == 1:
       self.character = self.entities[0].display_character
+    elif len(self.entities) > 1 and all([ent.is_food for ent in self.entities]):
+      self.character = '%'
     else:
       self.character = 'X'
-
+      #sert cond if is_alive==F
+      found_dead_ant = False
+      for ent in self.entities:
+        if ent.is_alive==False:
+          print('Found dead ant on X space!',ent.ID)
 class world():
   def __init__(self,x_size,y_size,num_ants,num_food,config):
     self.config = config
@@ -110,6 +118,7 @@ class world():
     name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
     return name_to_class[name](**attributes)
   def render(self):
+    print(self.timestep)
     print(self.grid)
 
   def place_ants(self):
@@ -211,7 +220,7 @@ class world():
 
   def check_for_end_conditions(self):
     alive_ants = [ant.name for ant in self.ants if ant.is_alive]
-    unique_species_alive = np.unique(alive_ants)
+    unique_species_alive,unique_species_alive_counts = np.unique(alive_ants,return_counts=True)
     self.previous_num_ant_teams = self.num_ant_teams
     self.num_ant_teams = len(unique_species_alive)
 
@@ -221,11 +230,17 @@ class world():
       self.same_team_count = 0
     
     if self.same_team_count > 10 and len(alive_ants)<5:
-      return True
+
+      print('Reached Stalemate End Condition')
+      print([[str(y),int(x)] for x,y in zip(unique_species_alive_counts,unique_species_alive)])
+      print(alive_ants)
+      # return True
+      return False
 
     if len(unique_species_alive)>1:
       return False
     else:
+      print('Reached Dominance End Condition')
       return True
 
   def get_stats(self):
@@ -256,10 +271,11 @@ class world():
         episode_stats['inference_time_mean'].append(np.mean(ant_stats['inference_time_arr']))
         episode_stats['inference_time_range'].append([np.min(ant_stats['inference_time_arr']),np.max(ant_stats['inference_time_arr'])])
 
-    episode_stats['ants_eaten'] = {k:np.mean(v) for k,v in episode_stats['ants_eaten'].items()}
-    episode_stats['food_eaten'] = {k:np.mean(v) for k,v in episode_stats['food_eaten'].items()}
+    episode_stats['ants_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['ants_eaten'].items()}
+    episode_stats['food_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['food_eaten'].items()}
     episode_stats['inference_time_mean'] = np.mean(episode_stats['inference_time_mean'])
     episode_stats['inference_time_range'] = [np.min(np.array(episode_stats['ants_eaten']).flatten()),np.max(np.array(episode_stats['ants_eaten']).flatten())]
+    episode_stats['num_ants_alive'] = sum([1 if ant.is_alive==True else 0 for ant in self.ants])
     return episode_stats
 
 

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     num_food=config['food'],
     config=config
     )
-  
+  episode_stats = []
   for episode in range(config['episodes']):
     grid_world = world(
                 x_size=config['grid_size_x'],
@@ -32,6 +32,8 @@ if __name__ == '__main__':
                 num_food=config['food'],
                 config=config
                 )
-    run_episode(grid_world,episode,config)
+    episode_stats.append(run_episode(grid_world,episode,config))
 
+  #plot stats
+  [print(ep) for ep in episode_stats]
 
