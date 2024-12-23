@@ -13,7 +13,6 @@ def run_episode(grid_world: world,episode,config):
     grid_world.log_state(episode,step,step==config['num_timesteps']-1)
     timestep_end = time.time()
     timestep_times.append(timestep_end-timestep_start)
-    print('len(grid_world.ants):',len(grid_world.ants))
     if grid_world.check_for_end_conditions():
       break
   print('Average_episode_time',np.mean(timestep_times))

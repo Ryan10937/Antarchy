@@ -39,31 +39,41 @@ class spot():
     else:
       self.character = 'X'
       #sert cond if is_alive==F
-      found_dead_ant = False
-      for ent in self.entities:
-        if ent.is_alive==False:
-          print('Found dead ant on X space!',ent.ID)
+      # found_dead_ant = False
+      # for ent in self.entities:
+      #   if ent.is_alive==False:
+      #     print('Found dead ant on X space!',ent.ID)
 class world():
-  def __init__(self,x_size,y_size,num_ants,num_food,config):
+  def __init__(self,x_size,y_size,num_ants,num_food,config,seed=None,control=False):
     self.config = config
     self.state_log_folder = './logs/state/'
     self.log_folder = './logs/log/'
     self.sleep_time = 1#seconds
     self.log_limit = 1000
     self.size = [x_size,y_size]
+    self.control = control
+    #set random seeds 
+    if seed is not None:
+      random.seed(seed)
+      np.random.seed(seed)
+
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.spawn_list = self.make_spawn_list({
       'position':[-1,-1],
       'map_size_x':-1,
       'map_size_y':-1,
       'display_character':'-1',
-      'ID' : -1,})
+      'ID' : -1,
+      'control' : control,
+      })
     self.ants = [self.roll_for_species({
       'position':[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
       'map_size_x':x_size,
       'map_size_y':y_size,
       'display_character':'8',
-      'ID' : ID,}
+      'ID' : ID,
+      'control' : control,
+      }
                             ) 
                      for ID in range(num_ants)]
     self.food = [food(
@@ -232,10 +242,9 @@ class world():
     if self.same_team_count > 10 and len(alive_ants)<5:
 
       print('Reached Stalemate End Condition')
-      print([[str(y),int(x)] for x,y in zip(unique_species_alive_counts,unique_species_alive)])
-      print(alive_ants)
-      # return True
-      return False
+      # print([[str(y),int(x)] for x,y in zip(unique_species_alive_counts,unique_species_alive)])
+      # print(alive_ants)
+      return True
 
     if len(unique_species_alive)>1:
       return False

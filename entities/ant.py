@@ -7,7 +7,7 @@ import numpy as np
 import jsonlines
 import time
 class ant(entity):
-  def __init__(self,position,map_size_x,map_size_y,display_character,ID):
+  def __init__(self,position,map_size_x,map_size_y,display_character,ID,intelligence,control=False):
     super().__init__(position,map_size_x,map_size_y,display_character,ID)
     self.damage = 10
     self.max_health = 200
@@ -17,7 +17,9 @@ class ant(entity):
     self.food_eaten = 0
     self.ants_eaten = 0
     self.action_space = 5 #5 action choices, cardinal directions and no movement
-    self.eps = 0.5
+    self.eps = 1.0 if control else 0.5 
+    self.control = control
+    self.intelligence = intelligence
     # self.gender = True
     # self.attractiveness_score = 0
     self.overwrite_history=False #eventually move this to config
@@ -98,18 +100,19 @@ class ant(entity):
   def infer(self,obs_list):
     obs_list = tf.reshape(obs_list,(-1,self.max_input_size,self.max_input_size))
 
-    #using observation, make a decision.
-    infer_start_time=time.time()
-    predicted_rewards = self.model.predict(obs_list,verbose=0)
-    infer_end_time = time.time()
-    self.inference_time_arr.append(infer_end_time-infer_start_time)
+    
 
     actions=[]
     for i,obs in enumerate(obs_list):
     #add epsilon randomness and decay
-      if random.random() < self.eps:
+      if  self.eps > random.random() :
         action = random.randint(0,self.action_space-1)
       else:
+        #using observation, make a decision.
+        infer_start_time=time.time()
+        predicted_rewards = self.model.predict(obs_list,verbose=0)
+        infer_end_time = time.time()
+        self.inference_time_arr.append(infer_end_time-infer_start_time)
         action = np.argmax(predicted_rewards[i])
       actions.append(action)
       reward = self.get_reward(obs,action)
