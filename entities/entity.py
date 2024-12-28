@@ -50,13 +50,13 @@ class entity():
     else:
       self.wall_bumps += 1
       return False
-  def move(self,grid):
+  def move(self,grid,action):
     '''
     Grid is the character array that represents the world
       If i can pass the actual world to this function, that might be better for encounters
     '''
     for _ in range(self.max_movement_speed):
-      direction=self.decide_direction(grid)
+      direction=self.decide_direction(grid,action)
       self.move_one(direction)
   def check_new_position(self,new_position):
     '''

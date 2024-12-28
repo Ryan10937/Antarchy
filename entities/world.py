@@ -24,7 +24,9 @@ class spot():
   def remove_entity(self,entity_to_remove):
     for idx,ent in enumerate(self.entities):
       if ent.ID == entity_to_remove.ID:
-        self.entities.pop(idx)
+        removed_item = self.entities.pop(idx)
+        if removed_item.ID != ent.ID:
+          print('Attempted to remove',removed_item,'but removed',ent,'instead')
     self.update_display_char()
     
   def update_display_char(self):
@@ -32,30 +34,46 @@ class spot():
       self.character = ' '
     elif len(self.entities) == 1:
       self.character = self.entities[0].display_character
+    elif len(self.entities) > 1 and all([ent.is_food for ent in self.entities]):
+      self.character = '%'
     else:
       self.character = 'X'
-
+      #sert cond if is_alive==F
+      # found_dead_ant = False
+      # for ent in self.entities:
+      #   if ent.is_alive==False:
+      #     print('Found dead ant on X space!',ent.ID)
 class world():
-  def __init__(self,x_size,y_size,num_ants,num_food,config):
+  def __init__(self,x_size,y_size,num_ants,num_food,config,seed=None,control=False):
     self.config = config
     self.state_log_folder = './logs/state/'
     self.log_folder = './logs/log/'
     self.sleep_time = 1#seconds
     self.log_limit = 1000
     self.size = [x_size,y_size]
+    self.control = control
+    #set random seeds 
+    if seed is not None:
+      random.seed(seed)
+      np.random.seed(seed)
+
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.spawn_list = self.make_spawn_list({
       'position':[-1,-1],
       'map_size_x':-1,
       'map_size_y':-1,
       'display_character':'-1',
-      'ID' : -1,})
+      'ID' : -1,
+      'control' : control,
+      })
     self.ants = [self.roll_for_species({
       'position':[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
       'map_size_x':x_size,
       'map_size_y':y_size,
       'display_character':'8',
-      'ID' : ID,}
+      'ID' : ID,
+      'control' : control,
+      }
                             ) 
                      for ID in range(num_ants)]
     self.food = [food(
@@ -67,6 +85,15 @@ class world():
                             ) 
                      for ID in range(num_food)]
     self.graveyard = []
+    self.num_ant_teams = len(config['species'])
+    self.species_to_class = {
+      'soldier':[ant for ant in self.ants if ant.name=='soldier'][0],
+      'runner':[ant for ant in self.ants if ant.name=='runner'][0],
+      'scout':[ant for ant in self.ants if ant.name=='scout'][0],
+      }
+
+    self.same_team_count = 0
+    self.timestep = 0
     self.place_ants()
     self.place_food()
 
@@ -101,6 +128,7 @@ class world():
     name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
     return name_to_class[name](**attributes)
   def render(self):
+    print(self.timestep)
     print(self.grid)
 
   def place_ants(self):
@@ -129,8 +157,8 @@ class world():
     time_string = datetime.now().strftime('%d_%H_%M_%S_%f')
     with open(f'{self.state_log_folder}state_at_{time_string}.json','w') as f:
       json.dump(entity_dict,f)
-    if len(os.listdir(self.state_log_folder))>=self.log_limit:
-      time.sleep(self.sleep_time)
+    # if len(os.listdir(self.state_log_folder))>=self.log_limit:
+    #   time.sleep(self.sleep_time)
   def clean_state_logs(self):
     shutil.rmtree(self.state_log_folder)
     os.makedirs(self.state_log_folder) 
@@ -149,20 +177,118 @@ class world():
             self.grid[x,y].remove_entity(ant)
 
   def entity_turns(self):
-    for ant in self.ants:
+    self.timestep+=1
+    actions = self.get_entity_decisions()
+    for i,ant in enumerate(self.ants):
       if ant.health <= 0:
         self.grid[ant.position[0],ant.position[1]].remove_entity(ant)
         continue
       prev_position_x = ant.position[0]
       prev_position_y = ant.position[1]
-      ant.act(self.grid)
+      ant.act(self.grid,actions[i])
       self.grid[prev_position_x,prev_position_y].remove_entity(ant)
       self.grid[ant.position[0],ant.position[1]].add_entity(ant)
     self.cleanup()
 
+  def get_entity_decisions(self):
+    #get observations for all ants
+    observations = [ant.get_observable_space(self.grid) for ant in self.ants] 
+    actions = [-1 for obs in observations]
+    for species in self.config['species']:#per species
+      #make a mask per species
+      species_mask = [1 if ant.name==species else 0 for ant in self.ants]
+
+      #call each model with obs x mask
+      species_obs = [obs for i,obs in enumerate(observations) if species_mask[i]==1]
+      #store action results at new_list x mask
+      species_actions = self.species_to_class[species].infer(species_obs)#use species-specific model on batch of species_obs
+      
+      # actions = [species_obs if species_mask[i]==1 else for a in actions]
+      count = 0
+      for i,action in enumerate(actions):
+        if species_mask[i]==1:
+          actions[i]=species_actions[count]
+          count+=1
+    return actions
   def log(self,message):
     with open(self.log_folder+'log.log','a') as f:
       f.write(message+'\n')
+
+
+  def train_models(self):
+    unique_species_names = []
+    unique_species = []
+    for ant in self.ants:
+      if ant.name not in unique_species_names:
+        unique_species_names.append(ant.name)
+        unique_species.append(ant)
+    for species in unique_species:
+      species.train_model()#this method covers loading, training, and saving model to appropriate path
+  def save_history(self):
+    for ant in self.ants:
+      ant.save_history()
+
+  def check_for_end_conditions(self):
+    alive_ants = [ant.name for ant in self.ants if ant.is_alive]
+    unique_species_alive,unique_species_alive_counts = np.unique(alive_ants,return_counts=True)
+    self.previous_num_ant_teams = self.num_ant_teams
+    self.num_ant_teams = len(unique_species_alive)
+
+    if self.previous_num_ant_teams == self.num_ant_teams:
+      self.same_team_count+=1
+    else:
+      self.same_team_count = 0
+    
+    if self.same_team_count > 10 and len(alive_ants)<5:
+
+      print('Reached Stalemate End Condition')
+      # print([[str(y),int(x)] for x,y in zip(unique_species_alive_counts,unique_species_alive)])
+      # print(alive_ants)
+      return True
+
+    if len(unique_species_alive)>1:
+      return False
+    else:
+      print('Reached Dominance End Condition')
+      return True
+
+  def get_stats(self):
+    '''
+    Returns a dictionary of stats about the episode:
+      timesteps: int
+      met_end_conditions: bool
+      mean_ant_inference_time: float
+      range_ant_inference_time: (float,float)
+      food_eaten: dict[species]:int
+      ants_eaten: dict[species]:int
+
+    '''
+
+    episode_stats = {
+      'timesteps':self.timestep,
+      'ants_eaten':{k:[] for k in self.config['species']},
+      'food_eaten':{k:[] for k in self.config['species']},
+      'inference_time_mean':[],
+      'inference_time_range':[],
+      } 
+    for ant in self.ants:
+
+      ant_stats = ant.get_stats()
+      episode_stats['ants_eaten'][ant.name].append(ant_stats['ants_eaten'])
+      episode_stats['food_eaten'][ant.name].append(ant_stats['food_eaten'])
+      if len(ant_stats['inference_time_arr']) > 0:
+        episode_stats['inference_time_mean'].append(np.mean(ant_stats['inference_time_arr']))
+        episode_stats['inference_time_range'].append([np.min(ant_stats['inference_time_arr']),np.max(ant_stats['inference_time_arr'])])
+
+    episode_stats['ants_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['ants_eaten'].items()}
+    episode_stats['food_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['food_eaten'].items()}
+    episode_stats['inference_time_mean'] = np.mean(episode_stats['inference_time_mean'])
+    episode_stats['inference_time_range'] = [np.min(np.array(episode_stats['ants_eaten']).flatten()),np.max(np.array(episode_stats['ants_eaten']).flatten())]
+    episode_stats['num_ants_alive'] = sum([1 if ant.is_alive==True else 0 for ant in self.ants])
+    return episode_stats
+
+
+
 
 
 
