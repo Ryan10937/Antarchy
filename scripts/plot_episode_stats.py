@@ -35,33 +35,31 @@ def plot_side_by_side_bars(dict1, dict2, title="Comparison", xlabel="Keys", ylab
     """
     if set(dict1.keys()) != set(dict2.keys()):
         raise ValueError("The keys of both dictionaries must match.")
+    for category in dict1.keys():
+        keys = list(dict1[category].keys())
+        values1 = [dict1[category][key] for key in keys]
+        values2 = [dict2[category][key] for key in keys]
+        x = np.arange(len(keys))  # the label locations
+        width = 0.35  # the width of the bars
 
-    keys = list(dict1.keys())
-    values1 = [dict1[key] for key in keys]
-    values2 = [dict2[key] for key in keys]
+        fig, ax = plt.subplots(figsize=(10, 6))
+        rects1 = ax.bar(x - width/2, values1, width, label='Dict 1')
+        rects2 = ax.bar(x + width/2, values2, width, label='Dict 2')
 
-    x = np.arange(len(keys))  # the label locations
-    width = 0.35  # the width of the bars
+        # Add some text for labels, title, and custom x-axis tick labels, etc.
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        ax.set_xticks(x)
+        ax.set_xticklabels(keys)
+        ax.legend()
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    rects1 = ax.bar(x - width/2, values1, width, label='Dict 1')
-    rects2 = ax.bar(x + width/2, values2, width, label='Dict 2')
+        # Add labels to each bar
+        ax.bar_label(rects1, padding=3)
+        ax.bar_label(rects2, padding=3)
 
-    # Add some text for labels, title, and custom x-axis tick labels, etc.
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.set_xticks(x)
-    ax.set_xticklabels(keys)
-    ax.legend()
-
-    # Add labels to each bar
-    ax.bar_label(rects1, padding=3)
-    ax.bar_label(rects2, padding=3)
-
-    fig.tight_layout()
-    plt.show()
-    plt.savefig('./figures/title.png')
+        fig.tight_layout()
+        plt.savefig(f'./figures/{title}_{category}.png')
 
 
 def aggregate_dicts(dict_list: List[Dict[str, Union[int, float]]], method: str) -> Dict[str, Union[int, float]]:
@@ -85,25 +83,28 @@ def aggregate_dicts(dict_list: List[Dict[str, Union[int, float]]], method: str) 
             raise ValueError("All dictionaries must have the same keys.")
 
     # Aggregate values for each key
-    aggregated_dict = {}
+    aggregated_dict = {key:{} for key in keys}
     for key in keys:
-        values = [d[key] for d in dict_list]
-
-        if method == 'mean':
-            aggregated_dict[key] = mean(values)
-        elif method == 'mode':
-            try:
-                aggregated_dict[key] = mode(values)
-            except:
-                aggregated_dict[key] = None  # If no mode exists
-        elif method == 'range':
-            aggregated_dict[key] = max(values) - min(values)
-        elif method == 'std':
-            if len(values) > 1:
-                aggregated_dict[key] = stdev(values)
+        subkeys=dict_list[0][key].keys()
+        for subkey in subkeys:
+            values = [d[key][subkey] for d in dict_list]
+            if type(values[0]) != int and type(values[0]) != float:
+                continue
+            if method == 'mean':
+                aggregated_dict[key][subkey] = mean(values)
+            elif method == 'mode':
+                try:
+                    aggregated_dict[key][subkey] = mode(values)
+                except:
+                    aggregated_dict[key][subkey] = None  # If no mode exists
+            elif method == 'range':
+                aggregated_dict[key][subkey] = max(values) - min(values)
+            elif method == 'std':
+                if len(values) > 1:
+                    aggregated_dict[key][subkey] = stdev(values)
+                else:
+                    aggregated_dict[key][subkey] = 0  # Standard deviation is 0 for a single value
             else:
-                aggregated_dict[key] = 0  # Standard deviation is 0 for a single value
-        else:
-            raise ValueError("Invalid method. Choose 'mean', 'mode', 'range', or 'std'.")
-
+                raise ValueError("Invalid method. Choose 'mean', 'mode', 'range', or 'std'.")
+    print('aggregated_dict',aggregated_dict)
     return aggregated_dict

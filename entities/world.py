@@ -239,7 +239,7 @@ class world():
     else:
       self.same_team_count = 0
     
-    if self.same_team_count > 10 and len(alive_ants)<5:
+    if self.same_team_count > 100 and len(alive_ants)<5:
 
       print('Reached Stalemate End Condition')
       # print([[str(y),int(x)] for x,y in zip(unique_species_alive_counts,unique_species_alive)])
@@ -285,6 +285,7 @@ class world():
     episode_stats['inference_time_mean'] = np.mean(episode_stats['inference_time_mean'])
     episode_stats['inference_time_range'] = [np.min(np.array(episode_stats['ants_eaten']).flatten()),np.max(np.array(episode_stats['ants_eaten']).flatten())]
     episode_stats['num_ants_alive'] = sum([1 if ant.is_alive==True else 0 for ant in self.ants])
+    episode_stats['num_food_alive'] = sum([1 if food.is_alive==True else 0 for food in self.food])
     return episode_stats
 
 

@@ -19,8 +19,6 @@ def run_episode(grid_world: world,episode,config):
   grid_world.save_history()
   grid_world.train_models()
   episode_stats = grid_world.get_stats() 
-  # for k,v in episode_stats.items():
-  #   print(f'{k}:{v}')
   return episode_stats
   # waiting_count=0
   # waiting_timeout=10
