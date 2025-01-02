@@ -53,9 +53,10 @@ class ant(entity):
     entity.health -= self.damage
     entity.log(f'{self.ID} attacking {entity.ID} for {entity.damage}')
     if entity.health <= 0:
-      self.food_eaten+=1
       entity.display_character='#'
       entity.is_alive=False
+      if entity.is_food==True:
+        self.food_eaten+=1
       if entity.is_food==False:
         self.ants_eaten+=1
 

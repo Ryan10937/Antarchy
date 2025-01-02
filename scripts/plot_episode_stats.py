@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from statistics import mean, mode, stdev
+from statistics import mean, median, stdev
 from typing import List, Dict, Union
 def plot(control_stats,episode_stats):
   #{'timesteps': 55, 
@@ -15,7 +15,7 @@ def plot(control_stats,episode_stats):
     #plot food eaten, compare with control
       #im thinking bar chart with a bar per species and paired with its control
 
-  for method in ['mean','mode','range','std']:
+  for method in ['mean','median','range','std']:
       
     control_stats_agg=aggregate_dicts([{k:v for k,v in d.items() if k in ['ants_eaten','food_eaten']} for d in control_stats],method=method)
     episode_stats_agg=aggregate_dicts([{k:v for k,v in d.items() if k in ['ants_eaten','food_eaten']} for d in episode_stats],method=method)
@@ -43,13 +43,13 @@ def plot_side_by_side_bars(dict1, dict2, title="Comparison", xlabel="Keys", ylab
         width = 0.35  # the width of the bars
 
         fig, ax = plt.subplots(figsize=(10, 6))
-        rects1 = ax.bar(x - width/2, values1, width, label='Dict 1')
-        rects2 = ax.bar(x + width/2, values2, width, label='Dict 2')
+        rects1 = ax.bar(x - width/2, values1, width, label='Baseline')
+        rects2 = ax.bar(x + width/2, values2, width, label='Model')
 
         # Add some text for labels, title, and custom x-axis tick labels, etc.
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        ax.set_title(title)
+        ax.set_title(f'{title}_{category}')
         ax.set_xticks(x)
         ax.set_xticklabels(keys)
         ax.legend()
@@ -68,7 +68,7 @@ def aggregate_dicts(dict_list: List[Dict[str, Union[int, float]]], method: str) 
 
     Parameters:
         dict_list (List[Dict[str, Union[int, float]]]): List of dictionaries with numeric values.
-        method (str): Aggregation method - 'mean', 'mode', 'range', or 'std' (standard deviation).
+        method (str): Aggregation method - 'mean', 'median', 'range', or 'std' (standard deviation).
 
     Returns:
         Dict[str, Union[int, float]]: A dictionary with aggregated values.
@@ -92,9 +92,9 @@ def aggregate_dicts(dict_list: List[Dict[str, Union[int, float]]], method: str) 
                 continue
             if method == 'mean':
                 aggregated_dict[key][subkey] = mean(values)
-            elif method == 'mode':
+            elif method == 'median':
                 try:
-                    aggregated_dict[key][subkey] = mode(values)
+                    aggregated_dict[key][subkey] = median(values)
                 except:
                     aggregated_dict[key][subkey] = None  # If no mode exists
             elif method == 'range':
@@ -105,6 +105,6 @@ def aggregate_dicts(dict_list: List[Dict[str, Union[int, float]]], method: str) 
                 else:
                     aggregated_dict[key][subkey] = 0  # Standard deviation is 0 for a single value
             else:
-                raise ValueError("Invalid method. Choose 'mean', 'mode', 'range', or 'std'.")
+                raise ValueError("Invalid method. Choose 'mean', 'median', 'range', or 'std'.")
     print('aggregated_dict',aggregated_dict)
     return aggregated_dict

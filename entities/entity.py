@@ -22,6 +22,14 @@ class entity():
 
     self.log_folder = './logs/log/'
 
+    self.direction_dict = {
+      0:[0,0],
+      1:[1,0],
+      2:[0,1],
+      3:[-1,0],
+      4:[0,-1],
+      }
+
   def get_stats(self):
     return {
       'health':self.health,
@@ -32,32 +40,27 @@ class entity():
       }
 
   def move_one(self,direction):
-    direction_dict = {
-      0:[0,0],
-      1:[1,0],
-      2:[0,1],
-      3:[-1,0],
-      4:[0,-1],
-      }
+    
     potential_position = [
-      self.position[0] + direction_dict[direction][0],
-      self.position[1] + direction_dict[direction][1]
+      self.position[0] + self.direction_dict[direction][0],
+      self.position[1] + self.direction_dict[direction][1]
     ]
     if self.check_new_position(potential_position):
       self.position[0] = potential_position[0] 
       self.position[1] = potential_position[1]
-      return True
+      return True #unused return value
     else:
       self.wall_bumps += 1
-      return False
-  def move(self,grid,action):
+      return False #unused return value
+  def move(self,grid,action,dreaming=False):
     '''
     Grid is the character array that represents the world
       If i can pass the actual world to this function, that might be better for encounters
     '''
     for _ in range(self.max_movement_speed):
       direction=self.decide_direction(grid,action)
-      self.move_one(direction)
+      self.move_one(direction,dreaming)
+      # if on a non_space or species spot, break
   def check_new_position(self,new_position):
     '''
     new_position: list of x,y coord

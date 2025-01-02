@@ -12,7 +12,10 @@ class scout(ant):
     self.history_path = 'history/scout/history.csv'
     self.obs_range = 4
     self.intelligence = 1
+    self.food_eaten_last_turn = 0
     super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,control)
 
   def get_species_reward(self,obs,action):
-    return self.food_eaten #this might be confusing because its total food eaten, not food eaten this turn
+    food_eaten_this_turn = self.food_eaten - self.food_eaten_last_turn
+    self.food_eaten_last_turn = self.food_eaten
+    return food_eaten_this_turn

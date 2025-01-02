@@ -55,7 +55,7 @@ class world():
     #set random seeds 
     if seed is not None:
       random.seed(seed)
-      np.random.seed(seed)
+      np.random.seed(np.int64(seed))
 
     self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.spawn_list = self.make_spawn_list({
@@ -280,8 +280,10 @@ class world():
         episode_stats['inference_time_mean'].append(np.mean(ant_stats['inference_time_arr']))
         episode_stats['inference_time_range'].append([np.min(ant_stats['inference_time_arr']),np.max(ant_stats['inference_time_arr'])])
 
-    episode_stats['ants_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['ants_eaten'].items()}
-    episode_stats['food_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['food_eaten'].items()}
+    # episode_stats['ants_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['ants_eaten'].items()}
+    # episode_stats['food_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['food_eaten'].items()}
+    episode_stats['ants_eaten'] = {k:int(np.sum(v)) for k,v in episode_stats['ants_eaten'].items()}
+    episode_stats['food_eaten'] = {k:int(np.sum(v)) for k,v in episode_stats['food_eaten'].items()}
     episode_stats['inference_time_mean'] = np.mean(episode_stats['inference_time_mean'])
     episode_stats['inference_time_range'] = [np.min(np.array(episode_stats['ants_eaten']).flatten()),np.max(np.array(episode_stats['ants_eaten']).flatten())]
     episode_stats['num_ants_alive'] = sum([1 if ant.is_alive==True else 0 for ant in self.ants])
