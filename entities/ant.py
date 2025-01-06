@@ -81,7 +81,7 @@ class ant(entity):
         tf.keras.layers.Dense(64),#i dont need an RNN because the training isnt sequential, its for all ants
         tf.keras.layers.Dense(self.action_space)  # Output Q-values for each action
       ])
-      opt = tf.keras.optimizers.Adam(learning_rate=0.01)
+      opt = tf.keras.optimizers.Adam(learning_rate=0.1)
       self.model.compile(optimizer=opt, loss='mse')
 
   def train_model(self):
@@ -100,9 +100,6 @@ class ant(entity):
 
   def infer(self,obs_list):
     obs_list = tf.reshape(obs_list,(-1,self.max_input_size,self.max_input_size))
-
-    
-
     actions=[]
     for i,obs in enumerate(obs_list):
     #add epsilon randomness and decay
@@ -141,13 +138,13 @@ class ant(entity):
       reward +=1
     reward += self.get_species_reward(obs,action)
     return reward
-  def decide_direction(self,grid,action):
-    '''
-    Method to decide which way an entity should move
-    Uses self.model to decide action
-    '''
-    # direction = self.infer(self.get_observable_space(grid))
-    return action
+  # def decide_direction(self,grid,action):
+  #   '''
+  #   Method to decide which way an entity should move
+  #   Uses self.model to decide action
+  #   '''
+  #   # direction = self.infer(self.get_observable_space(grid))
+  #   return action
 
   def get_observable_space(self,grid):
 

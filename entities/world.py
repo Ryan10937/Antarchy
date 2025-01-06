@@ -52,6 +52,7 @@ class world():
     self.log_limit = 1000
     self.size = [x_size,y_size]
     self.control = control
+    self.actions_history = []
     #set random seeds 
     if seed is not None:
       random.seed(seed)
@@ -186,6 +187,7 @@ class world():
       prev_position_x = ant.position[0]
       prev_position_y = ant.position[1]
       ant.act(self.grid,actions[i])
+      self.actions_history.append(actions)
       self.grid[prev_position_x,prev_position_y].remove_entity(ant)
       self.grid[ant.position[0],ant.position[1]].add_entity(ant)
     self.cleanup()

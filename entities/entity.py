@@ -52,15 +52,37 @@ class entity():
     else:
       self.wall_bumps += 1
       return False #unused return value
-  def move(self,grid,action,dreaming=False):
+  def move(self,grid,action):
     '''
     Grid is the character array that represents the world
       If i can pass the actual world to this function, that might be better for encounters
     '''
     for _ in range(self.max_movement_speed):
-      direction=self.decide_direction(grid,action)
-      self.move_one(direction,dreaming)
+      # direction=self.decide_direction(grid,action)
+      self.move_one(action)
       # if on a non_space or species spot, break
+      
+      if self.check_to_stop(grid):
+        break
+  def check_to_stop(self,grid):
+    #stop if there would be a fight/food
+    grid_spot = grid[self.position[0],self.position[1]]
+    if grid_spot.character == self.display_character:
+      #if same species, keep moving
+      return False
+    elif grid_spot.character == ' ':
+      #if blank, keep moving
+      return False
+    elif grid_spot.character == 'X':#if there is more than one entity
+      if all([x.display_character==self.display_character for x in grid_spot.entities]):
+        #if all of these entities are the same species, move along
+        return True
+      else:
+        #if any of them are non-self species, stop.
+        return False
+    else:
+      return True
+
   def check_new_position(self,new_position):
     '''
     new_position: list of x,y coord
@@ -75,13 +97,13 @@ class entity():
       return False
     else:
       return True
-  def decide_direction(self,grid):
-    '''
-    Method to decide which way an entity should move
-    For now, this is a random selection, to be replaced with an 
-      agent-like decision maker later 
-    '''
-    return random.randint(0,4)
+  # def decide_direction(self,grid):
+  #   '''
+  #   Method to decide which way an entity should move
+  #   For now, this is a random selection, to be replaced with an 
+  #     agent-like decision maker later 
+  #   '''
+  #   return random.randint(0,4)
   def log(self,message):
     with open(self.log_folder+'log.log','a') as f:
       f.write(message+'\n')
