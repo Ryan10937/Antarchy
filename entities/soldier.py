@@ -14,21 +14,23 @@ class soldier(ant):
     self.intelligence = 1
     self.ants_eaten_last_turn = 0
     self.walls_bumped_last_turn = 0
-    super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,control)
+    super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,self.obs_range,control)
 
   def get_species_reward(self,obs,action):
     ants_eaten_this_turn = self.get_ants_eaten_this_turn()
-    walls_bumped = self.get_walls_bumped_this_turn()
+    walls_bumped = self.get_walls_bumped_this_turn() 
     return ants_eaten_this_turn - walls_bumped
   
   def get_walls_bumped_this_turn(self):
     walls_bumped_this_turn = self.wall_bumps - self.walls_bumped_last_turn
     self.walls_bumped_last_turn = self.wall_bumps
+    if self.wall_bumps > 10 and walls_bumped_this_turn>1:
+      walls_bumped_this_turn = -1000
     return walls_bumped_this_turn
   
   def get_ants_eaten_this_turn(self):
     ants_eaten_this_turn = self.ants_eaten - self.ants_eaten_last_turn
     self.ants_eaten_last_turn = self.ants_eaten
-    return ants_eaten_this_turn
+    return ants_eaten_this_turn*10
     
     

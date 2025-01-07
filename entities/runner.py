@@ -14,7 +14,7 @@ class runner(ant):
     self.intelligence = 1
     self.food_eaten_last_turn = 0
     self.walls_bumped_last_turn = 0
-    super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,control)
+    super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,self.obs_range,control)
     
   def get_species_reward(self,obs,action):
     food_eaten_this_turn = self.get_food_eaten_this_turn()
@@ -24,7 +24,7 @@ class runner(ant):
   def get_food_eaten_this_turn(self):
     food_eaten_this_turn = self.food_eaten - self.food_eaten_last_turn
     self.food_eaten_last_turn = self.food_eaten
-    return food_eaten_this_turn
+    return food_eaten_this_turn*10
   
   def get_walls_bumped_this_turn(self):
     walls_bumped_this_turn = self.wall_bumps - self.walls_bumped_last_turn

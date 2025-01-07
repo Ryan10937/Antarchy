@@ -7,23 +7,24 @@ import numpy as np
 import jsonlines
 import time
 class ant(entity):
-  def __init__(self,position,map_size_x,map_size_y,display_character,ID,intelligence,control=False):
+  def __init__(self,position,map_size_x,map_size_y,display_character,ID,intelligence,obs_range,control=False):
     super().__init__(position,map_size_x,map_size_y,display_character,ID)
     self.damage = 10
     self.max_health = 200
     self.health = 200
     self.max_movement_speed = 3
+    self.obs_range = obs_range
     self.is_food = False
     self.food_eaten = 0
     self.ants_eaten = 0
     self.action_space = 5 #5 action choices, cardinal directions and no movement
-    self.eps = 1.0 if control else 0.5 
+    self.eps = 1.0 if control else 0.2 
     self.control = control
     self.intelligence = intelligence
     # self.gender = True
     # self.attractiveness_score = 0
     self.overwrite_history=False #eventually move this to config
-    self.max_input_size = 7
+    self.max_input_size = 13
     self.history = []
     self.inference_time_arr = []
     self.get_model()
@@ -75,13 +76,17 @@ class ant(entity):
     #if not, create it
     else:
       self.model = tf.keras.models.Sequential([
-        tf.keras.layers.InputLayer(input_shape=(7,7),dtype=int),
+        tf.keras.layers.InputLayer(shape=(self.max_input_size,self.max_input_size),dtype=int),
         tf.keras.layers.Flatten(),
         # tf.keras.layers.SimpleRNN(64, return_sequences=False),
-        tf.keras.layers.Dense(64),#i dont need an RNN because the training isnt sequential, its for all ants
-        tf.keras.layers.Dense(self.action_space)  # Output Q-values for each action
+        tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
+        tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
+        tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
+        tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
+        tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
+        tf.keras.layers.Dense(self.action_space,activation='relu')  # Output Q-values for each action
       ])
-      opt = tf.keras.optimizers.Adam(learning_rate=0.1)
+      opt = tf.keras.optimizers.Adam(learning_rate=0.01)
       self.model.compile(optimizer=opt, loss='mse')
 
   def train_model(self):
@@ -101,22 +106,68 @@ class ant(entity):
   def infer(self,obs_list):
     obs_list = tf.reshape(obs_list,(-1,self.max_input_size,self.max_input_size))
     actions=[]
-    for i,obs in enumerate(obs_list):
     #add epsilon randomness and decay
-      if  self.eps > random.random() :
-        action = random.randint(0,self.action_space-1)
-      else:
-        #using observation, make a decision.
-        infer_start_time=time.time()
-        predicted_rewards = self.model.predict(obs_list,verbose=0)
-        infer_end_time = time.time()
-        self.inference_time_arr.append(infer_end_time-infer_start_time)
-        action = np.argmax(predicted_rewards[i])
-      actions.append(action)
-      reward = self.get_reward(obs,action)
+    if self.eps > random.random() :
+      actions = [random.randint(0,self.action_space-1) for _ in obs_list]
+    else:
+      #using observation, make a decision.
+      infer_start_time=time.time()
+      predicted_rewards = self.model.predict(obs_list,verbose=0)
+      
+
+      infer_end_time = time.time()
+      self.inference_time_arr.append(infer_end_time-infer_start_time)
+      actions = [np.argmax(pred_reward) for pred_reward in predicted_rewards]
+    rewards=[]
+    for obs,action in zip(obs_list,actions):
       #store observation, decision, and reward for future training
+      reward = self.get_reward(obs,action)
       self.history.append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
+      rewards.append(reward)
     return actions
+  
+  def infer_next_state(self,obs_list,pred_actions,pred_rewards):
+    def find_self_in_obs(obs,display_character_ascii):
+      for i in range(obs):
+        for j in range(obs[i]):
+          if obs[i][j] == ord(display_character_ascii):
+            return [i,j]#this may pick up OTHER same species ants
+      return [len(obs)//2,len(obs[0])//2]#assume ant is in center of obs if we cant find it (could be X)
+    def check_position(position,obs):
+      #stop if any of these conditions are met:
+        #if at a wall (i really need to add a wall character)
+        #if sharing a space with another species
+        #if sharing a space with food
+      spot_character = obs[position[0]][position[1]]
+      if spot_character in ['#','X','%']:
+        return False
+      else:
+        return True
+    def move_one_in_obs(obs,direction,position):
+      potential_position = [
+        position[0] + direction[0],
+        position[1] + direction[1]
+      ]
+      if check_position(potential_position,obs):
+        return potential_position,True
+      else:
+        return position,False
+      
+    #using observations and predicted actions, create new obs_list
+    directions = [self.direction_dict[x] for x in pred_actions]
+    for obs,direction in zip(obs_list,directions):
+      position = find_self_in_obs(obs,ord(self.display_character))
+      obs[position[0]][position[1]]==' '
+      for _ in range(self.max_movement_speed):
+        position,stopped = move_one_in_obs(direction,position)
+        if stopped:
+          break
+      obs[position[0]][position[1]]==self.display_character
+
+    #infer on those observations, get new actions, and get rewards
+    
+    #return new observations, actions, and rewards 
+
   
   def save_history(self):
     for history_dict in self.history:
@@ -134,8 +185,8 @@ class ant(entity):
     #Add some amount to it depending on species
       #in each species, define a "add species reward" method
     reward = 0
-    if self.health > 0:
-      reward +=1
+    if self.health > 0: #until history is per-ant, this should be disabled
+      reward +=-0.1
     reward += self.get_species_reward(obs,action)
     return reward
   # def decide_direction(self,grid,action):
@@ -152,7 +203,6 @@ class ant(entity):
       n = desired_len//2 - array.shape[0]//2
       padded_array = [[padding_value]*(len(array[0])+n*2) for i in range(n)]
       for row in array:
-        # tmp=([padding_value]*n)+list(row)+([padding_value]*n)
         tmp=([padding_value]*n)+row.tolist()+([padding_value]*n)
         padded_array.append(tmp)
       for i in range(n):
@@ -160,31 +210,27 @@ class ant(entity):
       padded_array = np.array(padded_array)
       return padded_array
 
-
-
     xlow = self.position[0]-self.obs_range
     xhigh = self.position[0]+self.obs_range
 
     ylow = self.position[1]-self.obs_range
     yhigh = self.position[1]+self.obs_range
-
     #somehow rectify observable space if its outside the range of the map
       #maybe instead of getting a slice of the map, "query" the map at each spot to fill
       #a predefined matrix
       #and have a special wall character to denote it being at a wall
-    obs = np.array([[-1 for y in range(self.obs_range+2)] for x in range(self.obs_range+2)])
+    obs = np.array([[-1 for y in range(self.obs_range*2+1)] for x in range(self.obs_range*2+1)])
     for i,x in enumerate(range(xlow,xhigh+1)):
       for j,y in enumerate(range(ylow,yhigh+1)):
-        if x>=len(grid) or y>=len(grid[0]) or x<0 or y<0:
+        if (x>=len(grid)-1) or (y>=len(grid[0])-1) or x<0 or y<0:
           obs[i,j] = ord('#')
         else:
           obs[i,j] = ord(grid[x,y].character)
     obs = add_padding_2d(obs, self.max_input_size, ord('#'))
+    
     if len(obs) == 0:
       print('observable space is none')
-    
-    # return np.array(obs)
-    # return np.array([obs])
+
     return tf.convert_to_tensor([obs], dtype=tf.int32)
   
     
