@@ -63,20 +63,7 @@ if __name__ == '__main__':
     else:
       run_seed = args.seed
     if args.control == True:
-      try:  
-        grid_world = world(
-                    x_size=config['grid_size_x'],
-                    y_size=config['grid_size_y'],
-                    num_ants=config['ants'],
-                    num_food=config['food'],
-                    config=config,
-                    seed=run_seed,
-                    control=True
-                    )
-        control_stats.append(run_episode(grid_world,episode,config))
-      except Exception as e:
-        print(e)
-    try:
+      # try:  
       grid_world = world(
                   x_size=config['grid_size_x'],
                   y_size=config['grid_size_y'],
@@ -84,11 +71,24 @@ if __name__ == '__main__':
                   num_food=config['food'],
                   config=config,
                   seed=run_seed,
-                  control=False
+                  control=True
                   )
-      episode_stats.append(run_episode(grid_world,episode,config))
-    except Exception as e:
-      print(e)
+      control_stats.append(run_episode(grid_world,episode,config))
+      # except Exception as e:
+      #   print(e)
+    # try:
+    grid_world = world(
+                x_size=config['grid_size_x'],
+                y_size=config['grid_size_y'],
+                num_ants=config['ants'],
+                num_food=config['food'],
+                config=config,
+                seed=run_seed,
+                control=False
+                )
+    episode_stats.append(run_episode(grid_world,episode,config))
+    # except Exception as e:
+    #   print(e)
     print(f'Episode {episode} Concluded')
 
   #plot stats

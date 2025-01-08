@@ -4,9 +4,9 @@ num_timesteps: 100 #1000 timesteps with 200 episodes killed after 30 hours, also
 grid_size_x: 15
 grid_size_y: 35
 
-episodes: 100
+episodes: 3
 
-food: 35
+food: 15
 
 ants: 30
 

@@ -21,6 +21,9 @@ class ant(entity):
     self.eps = 1.0 if control else 0.2 
     self.control = control
     self.intelligence = intelligence
+    self.number_of_dreams = 3
+    self.discount_factor = 0.9
+    self.self_character = '@'
     # self.gender = True
     # self.attractiveness_score = 0
     self.overwrite_history=False #eventually move this to config
@@ -84,6 +87,7 @@ class ant(entity):
         tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
         tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
         tf.keras.layers.Dense(16,activation=tf.keras.activations.sigmoid),
+        tf.keras.layers.Dropout(rate=0.25),
         tf.keras.layers.Dense(self.action_space,activation='relu')  # Output Q-values for each action
       ])
       opt = tf.keras.optimizers.Adam(learning_rate=0.01)
@@ -98,51 +102,84 @@ class ant(entity):
       #from [obs,action,reward] -> [[obs],action with reward @ argmax] 
     y = np.array([[dct['reward'] if i == np.argmax(dct['action']) else a for i,a in enumerate(range(self.action_space))] for dct in history]) 
     X = np.array([dct['obs'] for dct in history])
-    self.model.fit(X,y,verbose=0)
+    # self.model.fit(X,y,verbose=0)
+    print(self.name,'training')
+    self.model.fit(X,
+                   y,
+                   epochs=20,
+                   validation_split=0.1,
+                   callbacks = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
+                                                                patience=5,           
+                                                                verbose=0, 
+                                                                restore_best_weights=True)
+                  )
 
     self.model.save(self.model_path)
 
 
-  def infer(self,obs_list):
+  def infer(self,obs_list,dreaming=False):
     obs_list = tf.reshape(obs_list,(-1,self.max_input_size,self.max_input_size))
     actions=[]
     #add epsilon randomness and decay
     if self.eps > random.random() :
       actions = [random.randint(0,self.action_space-1) for _ in obs_list]
     else:
+      # print('here in ant.infer')
       #using observation, make a decision.
       infer_start_time=time.time()
       predicted_rewards = self.model.predict(obs_list,verbose=0)
-      
-
       infer_end_time = time.time()
       self.inference_time_arr.append(infer_end_time-infer_start_time)
+      
       actions = [np.argmax(pred_reward) for pred_reward in predicted_rewards]
+    
+    reward_arr = []
+    if dreaming==False:
+      #get predicted rewards
+      dream_start_time=time.time()
+      for i,dream in enumerate(range(self.number_of_dreams)):
+        if i==0:
+          new_obs_list,new_actions,new_rewards = self.infer_next_states(obs_list,actions)
+        else:
+          new_obs_list,new_actions,new_rewards = self.infer_next_states(new_obs_list,new_actions)
+          reward_arr.append([r*(self.discount_factor**dream) for r in new_rewards])
+      dream_end_time=time.time()
+      # print('total dream time: ',dream_end_time-dream_start_time)
+      
+    
     rewards=[]
-    for obs,action in zip(obs_list,actions):
+    for i,(obs,action) in enumerate(zip(obs_list,actions)):
       #store observation, decision, and reward for future training
       reward = self.get_reward(obs,action)
+      reward += sum([r[i] for r in reward_arr])
       self.history.append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
       rewards.append(reward)
     return actions
   
-  def infer_next_state(self,obs_list,pred_actions,pred_rewards):
-    def find_self_in_obs(obs,display_character_ascii):
-      for i in range(obs):
-        for j in range(obs[i]):
-          if obs[i][j] == ord(display_character_ascii):
-            return [i,j]#this may pick up OTHER same species ants
-      return [len(obs)//2,len(obs[0])//2]#assume ant is in center of obs if we cant find it (could be X)
+  def infer_next_states(self,obs_list,pred_actions):
+    def find_self_in_obs(obs): 
+      obs = obs.numpy()
+      self_character_ascii = ord(self.self_character)
+      for i,row in enumerate(obs):
+        for j,character in enumerate(row):
+          if character == self_character_ascii:
+            return [i,j]
+      return None
     def check_position(position,obs):
       #stop if any of these conditions are met:
         #if at a wall (i really need to add a wall character)
         #if sharing a space with another species
         #if sharing a space with food
       spot_character = obs[position[0]][position[1]]
-      if spot_character in ['#','X','%']:
+      # if spot_character in ['#','X','%']:
+      if spot_character in [ord('X'),ord('%')]:#what if i let it dream out of bounds but punished it heavily for it
+        return False
+      elif position[0]<0 or position[1]<0 or position[0]>=len(obs) or position[1]>=len(obs[0]):
+        print('Tried to dream out of obs bounds')
         return False
       else:
         return True
+      
     def move_one_in_obs(obs,direction,position):
       potential_position = [
         position[0] + direction[0],
@@ -152,21 +189,62 @@ class ant(entity):
         return potential_position,True
       else:
         return position,False
+    def get_obs_reward(obs,new_position):
+      #if new position in obs is food, give reward +10
+      if obs[new_position[0]][new_position[1]] == ord('%'):
+        return 10
+      elif obs[new_position[0]][new_position[1]] == ord('#'):
+        return -100
+      elif obs[new_position[0]][new_position[1]] == ord('X'):
+        return -1
+      else:
+        return 0
       
+
+    #runtime analysis vars
+    time_spent_moving_one = []
+    time_spent_finding_self = []
+
+
     #using observations and predicted actions, create new obs_list
     directions = [self.direction_dict[x] for x in pred_actions]
-    for obs,direction in zip(obs_list,directions):
-      position = find_self_in_obs(obs,ord(self.display_character))
-      obs[position[0]][position[1]]==' '
+    new_rewards=[]
+    for i,(obs,direction) in enumerate(zip(obs_list,directions)):
+      # print(obs.shape)
+      finding_self_start=time.time()
+      position = find_self_in_obs(obs)
+      finding_self_end=time.time()
+      time_spent_finding_self.append(finding_self_end-finding_self_start)
+
+      obs[position[0],position[1]]==ord(' ')
       for _ in range(self.max_movement_speed):
-        position,stopped = move_one_in_obs(direction,position)
+        moving_one_start=time.time()
+        position,stopped = move_one_in_obs(obs,direction,position)
+        moving_one_end=time.time()
+        time_spent_moving_one.append(moving_one_end-moving_one_start)
         if stopped:
           break
-      obs[position[0]][position[1]]==self.display_character
+      get_new_reward_start=time.time()
+      new_rewards.append(get_obs_reward(obs,position))
+      obs_list[i][position[0]][position[1]]==ord(self.self_character)
+      get_new_reward_end=time.time()
 
+    get_new_actions_start=time.time()
     #infer on those observations, get new actions, and get rewards
-    
-    #return new observations, actions, and rewards 
+    # new_predicted_rewards = self.model.predict(obs_list,verbose=0)
+    new_predicted_rewards = self.infer(obs_list,dreaming=True)
+    new_actions = [np.argmax(x) for x in new_predicted_rewards]
+    get_new_actions_end=time.time()
+
+
+    #print time analysis
+    # print('time_spent_moving_one:',sum(time_spent_moving_one))
+    # print('time_spent_finding_self:',sum(time_spent_finding_self))
+    # print('time_spent_getting_actions:',get_new_actions_end-get_new_actions_start)
+    # print('time_spent_getting_reward:',get_new_reward_end-get_new_reward_start)
+
+    #return new observations, actions, rewards, and new_positions
+    return obs_list,new_actions,new_rewards
 
   
   def save_history(self):
@@ -222,8 +300,11 @@ class ant(entity):
     obs = np.array([[-1 for y in range(self.obs_range*2+1)] for x in range(self.obs_range*2+1)])
     for i,x in enumerate(range(xlow,xhigh+1)):
       for j,y in enumerate(range(ylow,yhigh+1)):
-        if (x>=len(grid)-1) or (y>=len(grid[0])-1) or x<0 or y<0:
+        # if (x>=len(grid)-1) or (y>=len(grid[0])-1) or x<0 or y<0:
+        if (x>=len(grid)) or (y>=len(grid[0])) or x<0 or y<0:
           obs[i,j] = ord('#')
+        elif x==self.position[0] and y==self.position[1]:
+          obs[i,j] = ord(self.self_character)
         else:
           obs[i,j] = ord(grid[x,y].character)
     obs = add_padding_2d(obs, self.max_input_size, ord('#'))

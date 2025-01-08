@@ -12,9 +12,10 @@ from entities.runner import runner
 from entities.scout import scout
 from entities.food import food
 class spot():
-  def __init__(self,position):
+  def __init__(self,position,grid_max):
     self.position = position
-    self.character = ' '
+    self.character = '#' if position[0] in [0,grid_max[0]-1] or position[1] in [0,grid_max[1]-1] else ' '
+    self.initial_character = self.character
     self.entities = []
   def __repr__(self):
     return self.character
@@ -31,7 +32,7 @@ class spot():
     
   def update_display_char(self):
     if len(self.entities) == 0:
-      self.character = ' '
+      self.character = self.initial_character
     elif len(self.entities) == 1:
       self.character = self.entities[0].display_character
     elif len(self.entities) > 1 and all([ent.is_food for ent in self.entities]):
@@ -58,7 +59,7 @@ class world():
       random.seed(seed)
       np.random.seed(np.int64(seed))
 
-    self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
+    self.grid = np.array([[spot([x,y],grid_max=[x_size,y_size]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.spawn_list = self.make_spawn_list({
       'position':[-1,-1],
       'map_size_x':-1,
@@ -129,7 +130,7 @@ class world():
     name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
     return name_to_class[name](**attributes)
   def render(self):
-    print(self.timestep)
+    print(self.timestep,'benchmark'if self.control else 'model')
     print(self.grid)
 
   def place_ants(self):
