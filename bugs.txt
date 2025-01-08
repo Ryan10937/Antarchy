@@ -1,1 +1,6 @@
 if there arent enough total ants to guarantee each type of ant spawning, theres an error 
+
+Somehow ants are dying to food...
+
+
+

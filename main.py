@@ -6,6 +6,7 @@ from entities.world import world
 import tensorflow as tf
 import numpy as np
 import random
+import os
 import scripts.plot_episode_stats as pes
 if __name__ == '__main__':
 
@@ -14,6 +15,8 @@ if __name__ == '__main__':
   parser.add_argument('--config',type=str)
   parser.add_argument('--seed',type=int, required=False,default=-1)
   parser.add_argument('--control',type=bool, required=False,default=False)
+  parser.add_argument('--reset_models',type=bool, required=False,default=False)
+  parser.add_argument('--reset_training_data',type=bool, required=False,default=False)
   args = parser.parse_args()
 
   if args.seed != -1:
@@ -21,6 +24,33 @@ if __name__ == '__main__':
     random.seed(args.seed)
     np.random.seed(args.seed)
     tf.random.set_seed(args.seed)
+
+  if args.reset_models==True:
+    print('Deleting existing models')
+    file_list = [
+      'brains/runner/novice.keras',
+      'brains/scout/novice.keras',
+      'brains/soldier/novice.keras',
+    ]
+    for file in file_list:
+      try:
+        os.remove(file)
+      except Exception as e:
+        print(e)
+        
+  if args.reset_training_data==True:
+    print('Deleting existing training data')
+    file_list = [
+      'history/runner/history.csv',
+      'history/scout/history.csv',
+      'history/soldier/history.csv',
+    ]
+    for file in file_list:
+      try:
+        os.remove(file)
+      except Exception as e:
+        print(e)
+        
 
   with open(args.config,'r') as f:
     config = yaml.safe_load(f)
@@ -33,6 +63,7 @@ if __name__ == '__main__':
     else:
       run_seed = args.seed
     if args.control == True:
+      # try:  
       grid_world = world(
                   x_size=config['grid_size_x'],
                   y_size=config['grid_size_y'],
@@ -43,7 +74,9 @@ if __name__ == '__main__':
                   control=True
                   )
       control_stats.append(run_episode(grid_world,episode,config))
-
+      # except Exception as e:
+      #   print(e)
+    # try:
     grid_world = world(
                 x_size=config['grid_size_x'],
                 y_size=config['grid_size_y'],
@@ -54,6 +87,9 @@ if __name__ == '__main__':
                 control=False
                 )
     episode_stats.append(run_episode(grid_world,episode,config))
+    # except Exception as e:
+    #   print(e)
+    print(f'Episode {episode} Concluded')
 
   #plot stats
   if args.control==True:

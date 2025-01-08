@@ -12,9 +12,10 @@ from entities.runner import runner
 from entities.scout import scout
 from entities.food import food
 class spot():
-  def __init__(self,position):
+  def __init__(self,position,grid_max):
     self.position = position
-    self.character = ' '
+    self.character = '#' if position[0] in [0,grid_max[0]-1] or position[1] in [0,grid_max[1]-1] else ' '
+    self.initial_character = self.character
     self.entities = []
   def __repr__(self):
     return self.character
@@ -31,7 +32,7 @@ class spot():
     
   def update_display_char(self):
     if len(self.entities) == 0:
-      self.character = ' '
+      self.character = self.initial_character
     elif len(self.entities) == 1:
       self.character = self.entities[0].display_character
     elif len(self.entities) > 1 and all([ent.is_food for ent in self.entities]):
@@ -52,12 +53,13 @@ class world():
     self.log_limit = 1000
     self.size = [x_size,y_size]
     self.control = control
+    self.actions_history = []
     #set random seeds 
     if seed is not None:
       random.seed(seed)
-      np.random.seed(seed)
+      np.random.seed(np.int64(seed))
 
-    self.grid = np.array([[spot([x,y]) for y in range(self.size[1])] for x in range(self.size[0])])
+    self.grid = np.array([[spot([x,y],grid_max=[x_size,y_size]) for y in range(self.size[1])] for x in range(self.size[0])])
     self.spawn_list = self.make_spawn_list({
       'position':[-1,-1],
       'map_size_x':-1,
@@ -128,7 +130,7 @@ class world():
     name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
     return name_to_class[name](**attributes)
   def render(self):
-    print(self.timestep)
+    print(self.timestep,'benchmark'if self.control else 'model')
     print(self.grid)
 
   def place_ants(self):
@@ -186,6 +188,7 @@ class world():
       prev_position_x = ant.position[0]
       prev_position_y = ant.position[1]
       ant.act(self.grid,actions[i])
+      self.actions_history.append(actions)
       self.grid[prev_position_x,prev_position_y].remove_entity(ant)
       self.grid[ant.position[0],ant.position[1]].add_entity(ant)
     self.cleanup()
@@ -239,7 +242,7 @@ class world():
     else:
       self.same_team_count = 0
     
-    if self.same_team_count > 10 and len(alive_ants)<5:
+    if self.same_team_count > 100 and len(alive_ants)<5:
 
       print('Reached Stalemate End Condition')
       # print([[str(y),int(x)] for x,y in zip(unique_species_alive_counts,unique_species_alive)])
@@ -280,11 +283,14 @@ class world():
         episode_stats['inference_time_mean'].append(np.mean(ant_stats['inference_time_arr']))
         episode_stats['inference_time_range'].append([np.min(ant_stats['inference_time_arr']),np.max(ant_stats['inference_time_arr'])])
 
-    episode_stats['ants_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['ants_eaten'].items()}
-    episode_stats['food_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['food_eaten'].items()}
+    # episode_stats['ants_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['ants_eaten'].items()}
+    # episode_stats['food_eaten'] = {k:int(np.mean(v)) for k,v in episode_stats['food_eaten'].items()}
+    episode_stats['ants_eaten'] = {k:int(np.sum(v)) for k,v in episode_stats['ants_eaten'].items()}
+    episode_stats['food_eaten'] = {k:int(np.sum(v)) for k,v in episode_stats['food_eaten'].items()}
     episode_stats['inference_time_mean'] = np.mean(episode_stats['inference_time_mean'])
     episode_stats['inference_time_range'] = [np.min(np.array(episode_stats['ants_eaten']).flatten()),np.max(np.array(episode_stats['ants_eaten']).flatten())]
     episode_stats['num_ants_alive'] = sum([1 if ant.is_alive==True else 0 for ant in self.ants])
+    episode_stats['num_food_alive'] = sum([1 if food.is_alive==True else 0 for food in self.food])
     return episode_stats
 
 

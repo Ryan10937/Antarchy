@@ -1,6 +1,7 @@
 WILO.txt
 Roadmap.txt
 logs/*
+history/*
 ants_env/*
 *.pyc
 # Ignore the Godot import and cache files
