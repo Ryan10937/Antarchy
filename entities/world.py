@@ -6,6 +6,7 @@ import shutil
 import time
 from datetime import datetime
 
+from entities.queen import queen
 from entities.ant import ant
 from entities.soldier import soldier
 from entities.runner import runner
@@ -66,15 +67,20 @@ class world():
       'map_size_y':-1,
       'display_character':'-1',
       'ID' : -1,
-      'control' : control,
+      'config':config
       })
+    self.queens = {species:queen(species,
+                                 max_sequence_length=self.config['num_timesteps'],
+                                 control=control
+                                 ) 
+                                 for species in config['species']}
     self.ants = [self.roll_for_species({
       'position':[random.randint(0,self.size[0]-1),random.randint(0,self.size[1]-1)],
       'map_size_x':x_size,
       'map_size_y':y_size,
       'display_character':'8',
       'ID' : ID,
-      'control' : control,
+      'config':config
       }
                             ) 
                      for ID in range(num_ants)]
@@ -195,17 +201,27 @@ class world():
 
   def get_entity_decisions(self):
     #get observations for all ants
-    observations = [ant.get_observable_space(self.grid) for ant in self.ants] 
+    observations = [ant.get_observable_space(self.grid,self.queens[ant.name].max_input_size) for ant in self.ants] 
     actions = [-1 for obs in observations]
     for species in self.config['species']:#per species
       #make a mask per species
-      species_mask = [1 if ant.name==species else 0 for ant in self.ants]
+      species_mask = [1 if ant.name==species and ant.is_alive==True else 0 for ant in self.ants]
 
+      species_history = [ant.history for i,ant in enumerate(self.ants) if species_mask[i]==1]
       #call each model with obs x mask
       species_obs = [obs for i,obs in enumerate(observations) if species_mask[i]==1]
       #store action results at new_list x mask
-      species_actions = self.species_to_class[species].infer(species_obs)#use species-specific model on batch of species_obs
-      
+      # species_actions = self.species_to_class[species].infer(species_obs)#use species-specific model on batch of species_obs
+      species_actions,species_history = self.queens[species].infer(species_obs,species_history)#use species-specific model on batch of species_obs
+      # [a.history.append(species_history[i]) for i,a in enumerate(self.ants) if species_mask[i]==1]
+      count=0
+      for i in range(len(self.ants)):
+        # print('sum(species_mask)',sum(species_mask))
+        if species_mask[i]==1:
+          # print('len(self.ants)',len(self.ants))
+          # print('len(species_history)',len(species_history))
+          self.ants[i].history.append(species_history[count])
+          count+=1
       # actions = [species_obs if species_mask[i]==1 else for a in actions]
       count = 0
       for i,action in enumerate(actions):
@@ -219,17 +235,20 @@ class world():
 
 
   def train_models(self):
-    unique_species_names = []
-    unique_species = []
-    for ant in self.ants:
-      if ant.name not in unique_species_names:
-        unique_species_names.append(ant.name)
-        unique_species.append(ant)
-    for species in unique_species:
-      species.train_model()#this method covers loading, training, and saving model to appropriate path
+    # unique_species_names = []
+    # unique_species = []
+    # for ant in self.ants:
+    #   if ant.name not in unique_species_names:
+    #     unique_species_names.append(ant.name)
+    #     unique_species.append(ant)
+    # for species in unique_species:
+    #   self.queens[species].train_model()#this method covers loading, training, and saving model to appropriate path
+    for species in self.config['species']:
+      self.queens[species].train_model()#this method covers loading, training, and saving model to appropriate path
+
   def save_history(self):
     for ant in self.ants:
-      ant.save_history()
+      ant.save_history(ant.ID,ant.name)
 
   def check_for_end_conditions(self):
     alive_ants = [ant.name for ant in self.ants if ant.is_alive]
