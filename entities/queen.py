@@ -65,25 +65,31 @@ class queen():
       with jsonlines.open(os.path.join(self.example_ant.history_path,file), mode='r') as f:#needs changed
         ant_history = [obj for obj in f]
         #transform history from [obs,action,reward] -> [[obs],action with reward @ argmax] 
-        ant_X = np.array([[y for x in dct['obs'] for y in x] for dct in ant_history])
+        # ant_X = np.array([[y for x in dct['obs'] for y in x] for dct in ant_history])
         ant_y = np.array([[dct['reward'] if i == np.argmax(dct['action']) else a for i,a in enumerate(range(self.action_space))] for dct in ant_history]) 
       
-      
-      X.append(ant_X)#may need to pad to max timesteps
-      y.append(sum(ant_y))#may need to pad to max timesteps
+      padded_history = self.pad_ant_obs_list(obs=None,history=ant_history)
+      X.append(tf.reshape(padded_history,(self.max_sequence_length,self.max_input_size*self.max_input_size)))
+      y.append(sum(ant_y))
     
     print(self.example_ant.name,'training')
-    print(len(X))
-    print([len(x) for x in X])
-    print([len(x[0]) for x in X if len(x) != 15])
+    
+    for x in X:
+      if len(x) != self.max_sequence_length:
+        print('len(X)', len(X))
+        print('[len(x) for x in X]', [len(x) for x in X])
+        print('len(x)', len(x))
+        print(x)
     self.model.fit(np.array(X),
                   np.array(y),
-                  epochs=5,
-                  validation_split=0.1,
+                  epochs=15,
+                  validation_split=0.25,
                   callbacks = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
                                                                 patience=5,           
                                                                 verbose=0, 
-                                                                restore_best_weights=True)
+                                                                restore_best_weights=True),
+                  verbose=0
+                                                        
                   )
 
     self.model.save(self.example_ant.model_path)
@@ -96,12 +102,15 @@ class queen():
     if self.eps > random.random():
       actions = [random.randint(0,self.action_space-1) for _ in obs_list]
     else:
-      # print('here in ant.infer')
       #using observation, make a decision.
       infer_start_time=time.time()
       obs_list_for_prediction = np.array([self.pad_ant_obs_list(ob,hist) for ob,hist in zip(obs_list,ant_history)])
+      if obs_list_for_prediction.shape[1] != self.max_sequence_length:
+        print('obs_list_for_prediction before reshape is wrong',obs_list_for_prediction.shape[1])
       obs_list_for_prediction = tf.reshape(obs_list_for_prediction,
                                            (-1,self.max_sequence_length,self.max_input_size*self.max_input_size))
+      if obs_list_for_prediction.shape[1] != self.max_sequence_length:
+        print('obs_list_for_prediction after reshape is wrong',obs_list_for_prediction.shape[1])
       predicted_rewards = self.model.predict(obs_list_for_prediction,verbose=0)
       infer_end_time = time.time()
       self.inference_time_arr.append(infer_end_time-infer_start_time)
@@ -229,17 +238,24 @@ class queen():
     hist_obs = history_obs_to_obs(history)
     # print('len(hist_obs)',len(hist_obs))
     # print('len(hist_obs)',[len(h) for h in hist_obs])
-    hist_obs.append(obs)
+
+    if obs != None:
+      hist_obs.append(obs)
     num_padding = self.max_sequence_length-len(hist_obs)
     num_padding = 0 if num_padding < 0 else num_padding
     for _ in range(num_padding):
-      padded_arr = np.zeros(obs.shape,dtype=np.int32)
+      padded_arr = np.zeros((len(hist_obs[0]),len(hist_obs[0][0])),dtype=np.int32)
       hist_obs.append(padded_arr)
     # print('num_padding',num_padding)
     # print('len(hist_obs)',len(hist_obs))
     # print('len(hist_obs)',[len(h) for h in hist_obs])
     # print(hist_obs[0])
     hist_obs_np = np.array(hist_obs)
+    assert hist_obs_np.shape[0] == self.max_sequence_length
+    assert hist_obs_np.shape[1] == self.max_input_size
+    assert hist_obs_np.shape[2] == self.max_input_size
+      # print('hist_obs_np shape is',hist_obs_np.shape)
+      
     return hist_obs_np 
   
   

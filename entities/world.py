@@ -216,10 +216,9 @@ class world():
       # [a.history.append(species_history[i]) for i,a in enumerate(self.ants) if species_mask[i]==1]
       count=0
       for i in range(len(self.ants)):
-        # print('sum(species_mask)',sum(species_mask))
         if species_mask[i]==1:
-          # print('len(self.ants)',len(self.ants))
-          # print('len(species_history)',len(species_history))
+          if np.array(species_history[count]['obs']).shape != (self.queens[species].max_input_size,self.queens[species].max_input_size):
+            print('Ant history is shape',np.array(species_history[count]['obs']).shape, ' not ', (self.queens[species].max_input_size,self.queens[species].max_input_size))
           self.ants[i].history.append(species_history[count])
           count+=1
       # actions = [species_obs if species_mask[i]==1 else for a in actions]

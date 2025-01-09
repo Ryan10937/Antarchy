@@ -1,12 +1,12 @@
 ---
-num_timesteps: 15
+num_timesteps: 25
 
-grid_size_x: 15
+grid_size_x: 25
 grid_size_y: 35
 
-episodes: 3
+episodes: 15
 
-food: 15
+food: 40
 
 ants: 30
 
