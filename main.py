@@ -7,6 +7,7 @@ import tensorflow as tf
 import numpy as np
 import random
 import os
+import shutil
 import scripts.plot_episode_stats as pes
 if __name__ == '__main__':
 
@@ -40,14 +41,15 @@ if __name__ == '__main__':
         
   if args.reset_training_data==True:
     print('Deleting existing training data')
-    file_list = [
-      'history/runner/history.csv',
-      'history/scout/history.csv',
-      'history/soldier/history.csv',
+    folder_list = [
+      'history/runner',
+      'history/scout',
+      'history/soldier',
     ]
-    for file in file_list:
+    for folder in folder_list:
       try:
-        os.remove(file)
+        shutil.rmtree(folder)
+        os.mkdir(folder)
       except Exception as e:
         print(e)
         

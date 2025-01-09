@@ -1,12 +1,12 @@
 ---
-num_timesteps: 100 #1000 timesteps with 200 episodes killed after 30 hours, also had 1mil rows in history csvs
+num_timesteps: 25
 
-grid_size_x: 15
+grid_size_x: 25
 grid_size_y: 35
 
-episodes: 3
+episodes: 15
 
-food: 15
+food: 40
 
 ants: 30
 
