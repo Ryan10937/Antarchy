@@ -22,7 +22,7 @@ class queen():
                        }[species_name]
  
     # self.max_sequence_length = 15
-    self.eps = 1.0 if control else 0.2 
+    self.eps = 1.0 if control else 0.3 
     self.number_of_dreams = 0
     self.discount_factor = 0.9
     self.max_input_size = 13
@@ -49,30 +49,41 @@ class queen():
         tf.keras.layers.InputLayer(shape=(self.max_sequence_length,self.max_input_size*self.max_input_size),dtype=int),
         # tf.keras.layers.InputLayer(shape=(None,self.max_input_size*self.max_input_size),dtype=int),
         tf.keras.layers.SimpleRNN(64, return_sequences=True),
+        tf.keras.layers.SimpleRNN(64, return_sequences=True),
+        tf.keras.layers.SimpleRNN(64, return_sequences=True),
         tf.keras.layers.SimpleRNN(64, return_sequences=False),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dropout(rate=0.25),
+        # tf.keras.layers.Dropout(rate=0.10),
         tf.keras.layers.Dense(self.action_space,activation='relu')  # Output Q-values for each action
       ])
       opt = tf.keras.optimizers.Adam(learning_rate=0.01)
       self.model.compile(optimizer=opt, loss='mse')
 
-  def train_model(self):
+  def train_model(self,episode):
     X = []
     y = []
     for file in os.listdir(self.example_ant.history_path):
       #using the last n recorded observation states, train a batch
       with jsonlines.open(os.path.join(self.example_ant.history_path,file), mode='r') as f:#needs changed
         ant_history = [obj for obj in f]
-        #transform history from [obs,action,reward] -> [[obs],action with reward @ argmax] 
-        # ant_X = np.array([[y for x in dct['obs'] for y in x] for dct in ant_history])
-        ant_y = np.array([[dct['reward'] if i == np.argmax(dct['action']) else a for i,a in enumerate(range(self.action_space))] for dct in ant_history]) 
+
+      #limit history randomly
+      random_limit = random.randint(1,len(ant_history))
       
+      #X
+      ant_history = ant_history[:random_limit]
       padded_history = self.pad_ant_obs_list(obs=None,history=ant_history)
       X.append(tf.reshape(padded_history,(self.max_sequence_length,self.max_input_size*self.max_input_size)))
-      y.append(sum(ant_y))
+      
+
+      #y
+      ant_y = np.array([[dct['reward'] if i == dct['action'] else 
+                         a for i,a in enumerate(range(self.action_space))] 
+                         for dct in ant_history]) 
+      ant_y = (ant_y - np.mean(ant_y))/np.std(ant_y)
+      y.append(sum(ant_y[:random_limit]))
     
-    print(self.example_ant.name,'training')
+    print(self.example_ant.name,'training',' episode ',episode)
     
     for x in X:
       if len(x) != self.max_sequence_length:
@@ -80,16 +91,21 @@ class queen():
         print('[len(x) for x in X]', [len(x) for x in X])
         print('len(x)', len(x))
         print(x)
+
+    val_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
+                                                                patience=10,           
+                                                                verbose=0, 
+                                                                restore_best_weights=True)
+    train_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss',    
+                                                                patience=20,           
+                                                                verbose=0, 
+                                                                restore_best_weights=True)
     self.model.fit(np.array(X),
                   np.array(y),
-                  epochs=15,
+                  epochs=50,
                   validation_split=0.25,
-                  callbacks = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
-                                                                patience=5,           
-                                                                verbose=0, 
-                                                                restore_best_weights=True),
-                  verbose=0
-                                                        
+                  callbacks = [val_loss_early_stopping,train_loss_early_stopping],
+                  # verbose=0
                   )
 
     self.model.save(self.example_ant.model_path)

@@ -46,7 +46,8 @@ class spot():
       #   if ent.is_alive==False:
       #     print('Found dead ant on X space!',ent.ID)
 class world():
-  def __init__(self,x_size,y_size,num_ants,num_food,config,seed=None,control=False):
+  def __init__(self,x_size,y_size,num_ants,num_food,config,seed=None,control=False,episode=1):
+    self.episode = episode
     self.config = config
     self.state_log_folder = './logs/state/'
     self.log_folder = './logs/log/'
@@ -216,7 +217,7 @@ class world():
       # [a.history.append(species_history[i]) for i,a in enumerate(self.ants) if species_mask[i]==1]
       count=0
       for i in range(len(self.ants)):
-        if species_mask[i]==1:
+        if species_mask[i]==1:#wilo when ant dies
           if np.array(species_history[count]['obs']).shape != (self.queens[species].max_input_size,self.queens[species].max_input_size):
             print('Ant history is shape',np.array(species_history[count]['obs']).shape, ' not ', (self.queens[species].max_input_size,self.queens[species].max_input_size))
           self.ants[i].history.append(species_history[count])
@@ -243,7 +244,7 @@ class world():
     # for species in unique_species:
     #   self.queens[species].train_model()#this method covers loading, training, and saving model to appropriate path
     for species in self.config['species']:
-      self.queens[species].train_model()#this method covers loading, training, and saving model to appropriate path
+      self.queens[species].train_model(self.episode)#this method covers loading, training, and saving model to appropriate path
 
   def save_history(self):
     for ant in self.ants:

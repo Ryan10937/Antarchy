@@ -73,7 +73,8 @@ if __name__ == '__main__':
                   num_food=config['food'],
                   config=config,
                   seed=run_seed,
-                  control=True
+                  control=True,
+                  episode=episode,
                   )
       control_stats.append(run_episode(grid_world,episode,config))
       # except Exception as e:
@@ -86,7 +87,8 @@ if __name__ == '__main__':
                 num_food=config['food'],
                 config=config,
                 seed=run_seed,
-                control=False
+                control=False,
+                episode=episode,
                 )
     episode_stats.append(run_episode(grid_world,episode,config))
     # except Exception as e:

@@ -1,4 +1,5 @@
 from entities.ant import ant
+import numpy as np
 class scout(ant):
   def __init__(self,position,map_size_x,map_size_y,display_character,ID,config=None):
     self.damage = 25
@@ -17,16 +18,18 @@ class scout(ant):
     super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,self.obs_range,config)
 
   def get_species_reward(self,obs,action):
-    food_eaten_this_turn = self.get_food_eaten_this_turn()
-    walls_bumped_this_turn = self.get_walls_bumped_this_turn()
-    return food_eaten_this_turn - walls_bumped_this_turn
+    obs = np.array(obs)
+    reward = 0
+    for row in obs:
+      for char in row:
+        if char in [ord('#')]:
+          reward -= 1
+        if char in [ord('%')]:
+          reward += 10
+    # return reward + 10*self.get_food_eaten_this_turn() if self.is_alive else -100
+    return reward + 10*self.get_food_eaten_this_turn() 
 
   def get_food_eaten_this_turn(self):
     food_eaten_this_turn = self.food_eaten - self.food_eaten_last_turn
     self.food_eaten_last_turn = self.food_eaten
-    return food_eaten_this_turn*10
-  
-  def get_walls_bumped_this_turn(self):
-    walls_bumped_this_turn = self.wall_bumps - self.walls_bumped_last_turn
-    self.walls_bumped_last_turn = self.wall_bumps
-    return walls_bumped_this_turn
+    return food_eaten_this_turn
