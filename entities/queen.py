@@ -124,8 +124,8 @@ class queen():
                                                                 restore_best_weights=True)
     self.model.fit(np.array(X),
                   np.array(y),
-                  epochs=2,
-                  # epochs=25,
+                  # epochs=2,
+                  epochs=25,
                   validation_split=0.25,
                   # callbacks = [val_loss_early_stopping,train_loss_early_stopping],
                   # verbose=0
