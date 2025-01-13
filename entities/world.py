@@ -95,11 +95,11 @@ class world():
                      for ID in range(num_food)]
     self.graveyard = []
     self.num_ant_teams = len(config['species'])
-    self.species_to_class = {
-      'soldier':[ant for ant in self.ants if ant.name=='soldier'][0],
-      'runner':[ant for ant in self.ants if ant.name=='runner'][0],
-      'scout':[ant for ant in self.ants if ant.name=='scout'][0],
-      }
+    # self.species_to_class = {
+    #   'soldier':[ant for ant in self.ants if ant.name=='soldier'][0],
+    #   'runner':[ant for ant in self.ants if ant.name=='runner'][0],
+    #   'scout':[ant for ant in self.ants if ant.name=='scout'][0],
+    #   }
 
     self.same_team_count = 0
     self.timestep = 0
@@ -114,6 +114,7 @@ class world():
       'runner':runner,
       }
     possible_species = self.config['species']
+
     #get probability for each species
     spawn_rates = {}
     for name,class_type in name_to_class.items():
@@ -135,6 +136,8 @@ class world():
       'runner':runner,
       }
     name = self.spawn_list[random.randint(0,len(self.spawn_list)-1)]
+    if attributes['ID'] in [0,1,2]:
+      name = self.config['species'][attributes['ID']]
     return name_to_class[name](**attributes)
   def render(self):
     print(self.timestep,'benchmark'if self.control else 'model')

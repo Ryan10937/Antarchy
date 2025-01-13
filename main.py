@@ -59,13 +59,13 @@ if __name__ == '__main__':
 
   episode_stats = []
   control_stats = []
+
   for episode in range(config['episodes']):
     if args.seed == -1:
       run_seed = random.random()
     else:
       run_seed = args.seed
     if args.control == True:
-      # try:  
       grid_world = world(
                   x_size=config['grid_size_x'],
                   y_size=config['grid_size_y'],
@@ -77,9 +77,7 @@ if __name__ == '__main__':
                   episode=episode,
                   )
       control_stats.append(run_episode(grid_world,episode,config))
-      # except Exception as e:
-      #   print(e)
-    # try:
+  
     grid_world = world(
                 x_size=config['grid_size_x'],
                 y_size=config['grid_size_y'],
@@ -91,9 +89,43 @@ if __name__ == '__main__':
                 episode=episode,
                 )
     episode_stats.append(run_episode(grid_world,episode,config))
-    # except Exception as e:
-    #   print(e)
+
     print(f'Episode {episode} Concluded')
+  # for episode in range(config['episodes']):
+  #   if args.seed == -1:
+  #     run_seed = random.random()
+  #   else:
+  #     run_seed = args.seed
+  #   if args.control == True:
+  #     try:  
+  #       grid_world = world(
+  #                   x_size=config['grid_size_x'],
+  #                   y_size=config['grid_size_y'],
+  #                   num_ants=config['ants'],
+  #                   num_food=config['food'],
+  #                   config=config,
+  #                   seed=run_seed,
+  #                   control=True,
+  #                   episode=episode,
+  #                   )
+  #       control_stats.append(run_episode(grid_world,episode,config))
+  #     except Exception as e:
+  #       print(e)
+  #   try:
+  #     grid_world = world(
+  #                 x_size=config['grid_size_x'],
+  #                 y_size=config['grid_size_y'],
+  #                 num_ants=config['ants'],
+  #                 num_food=config['food'],
+  #                 config=config,
+  #                 seed=run_seed,
+  #                 control=False,
+  #                 episode=episode,
+  #                 )
+  #     episode_stats.append(run_episode(grid_world,episode,config))
+  #   except Exception as e:
+  #     print(e)
+  #   print(f'Episode {episode} Concluded')
 
   #plot stats
   if args.control==True:
