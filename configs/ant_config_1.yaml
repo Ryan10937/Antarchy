@@ -1,17 +1,16 @@
 ---
-num_timesteps: 25
+num_timesteps: 100
 
 grid_size_x: 25
 grid_size_y: 35
 
-episodes: 15
+episodes: 25
 
-food: 40
+food: 25
 
-ants: 30
+ants: 2
 
 species:
-  - soldier
   - scout
   - runner
 

@@ -21,6 +21,7 @@ class ant(entity):
     self.ants_eaten = 0
     self.max_sequence_length = None if config==None else config['num_timesteps']
     self.self_character = '@'
+    self.fog_of_war_character = '?'
     # self.gender = True
     # self.attractiveness_score = 0
     self.overwrite_history=False #eventually move this to config
@@ -54,7 +55,7 @@ class ant(entity):
     entity.health -= self.damage
     entity.log(f'{self.ID} attacking {entity.ID} for {entity.damage}')
     if entity.health <= 0:
-      entity.display_character='#'
+      entity.display_character='~'
       entity.is_alive=False
       if entity.is_food==True:
         self.food_eaten+=1
@@ -125,7 +126,7 @@ class ant(entity):
           obs[i,j] = ord(self.self_character)
         else:
           obs[i,j] = ord(grid[x,y].character)
-    obs = add_padding_2d(obs, max_input_size, ord('#'))
+    obs = add_padding_2d(obs, max_input_size, ord(self.fog_of_war_character))
     
     if len(obs) == 0:
       print('observable space is none')

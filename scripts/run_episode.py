@@ -10,6 +10,8 @@ def run_episode(grid_world: world,episode,config):
     timestep_start = time.time()
     grid_world.render()
     grid_world.entity_turns()
+    # time.sleep(0.25)
+
     grid_world.log_state(episode,step,step==config['num_timesteps']-1)
     timestep_end = time.time()
     timestep_times.append(timestep_end-timestep_start)
