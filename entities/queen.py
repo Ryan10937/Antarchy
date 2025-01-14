@@ -22,8 +22,9 @@ class queen():
                        }[species_name]
  
     # self.max_sequence_length = 15
-    self.eps = 1.0 if control else 0.3 
-    self.number_of_dreams = 2
+    self.eps = 1.0 if control else 0.25 
+    self.control = control
+    self.number_of_dreams = 3
     self.discount_factor = 0.9
     self.max_sequence_length = max_sequence_length + self.number_of_dreams
     self.max_input_size = 13
@@ -55,11 +56,13 @@ class queen():
         # tf.keras.layers.SimpleRNN(64, return_sequences=True),
         # tf.keras.layers.SimpleRNN(64, return_sequences=True),
         # tf.keras.layers.SimpleRNN(64, return_sequences=True),
+        tf.keras.layers.Dropout(rate=0.25),
         tf.keras.layers.LSTM(64, return_sequences=False),
         tf.keras.layers.Flatten(),
-        # tf.keras.layers.Dropout(rate=0.10),
-        tf.keras.layers.Dense(64,activation='sigmoid'),  # Output Q-values for each action
-        tf.keras.layers.Dense(self.action_space,activation='relu')  # Output Q-values for each action
+        tf.keras.layers.Dropout(rate=0.25),
+        tf.keras.layers.Dense(64,activation='relu'),  # Output Q-values for each action
+        tf.keras.layers.Dropout(rate=0.25),
+        tf.keras.layers.Dense(self.action_space,activation='sigmoid')  # Output Q-values for each action
       ])
       
       # lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -67,8 +70,8 @@ class queen():
       #     decay_steps=1000,
       #     decay_rate=0.9
       # )
-      # opt = tf.keras.optimizers.Adam(learning_rate=0.001)
-      opt = tf.keras.optimizers.RMSprop(learning_rate=0.01)
+      opt = tf.keras.optimizers.Adam(learning_rate=0.00001)
+      # opt = tf.keras.optimizers.RMSprop(learning_rate=0.001)
       # opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
       # self.model.compile(optimizer=opt, loss='mse')#mae?
       self.model.compile(optimizer=opt, loss='mae')#mae?
@@ -76,11 +79,13 @@ class queen():
       
 
   def train_model(self,episode):
+    if self.control:
+      return
     X = []
     y = []
     
     #randomly select n files for training
-    limit = 1000 
+    limit = 10000 
     file_list = os.listdir(self.example_ant.history_path)
     rand_indecies = [random.randint(0,len(file_list)-1) for _ in range(limit)]
     file_list = [file_list[ind] for ind in rand_indecies]
@@ -102,20 +107,14 @@ class queen():
       ant_y = np.array([[dct['reward'] if i == dct['action'] else 
                          a for i,a in enumerate(range(self.action_space))] 
                          for dct in ant_history]) 
-      ant_y = (ant_y - np.mean(ant_y))/np.std(ant_y)
+      # ant_y = (ant_y - np.mean(ant_y))/np.std(ant_y)
+      ant_y = (ant_y - np.min(ant_y))/(np.max(ant_y) - np.min(ant_y))
       y.append(sum(ant_y[:random_limit]))
     
     print(self.example_ant.name,'training',' episode ',episode)
-    
-    # for x in X:
-    #   if len(x) != self.max_sequence_length:
-    #     print('len(X)', len(X))
-    #     print('[len(x) for x in X]', [len(x) for x in X])
-    #     print('len(x)', len(x))
-    #     print(x)
 
     val_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
-                                                                patience=5,           
+                                                                patience=3,           
                                                                 verbose=0, 
                                                                 restore_best_weights=True)
     train_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss',    
@@ -124,11 +123,12 @@ class queen():
                                                                 restore_best_weights=True)
     self.model.fit(np.array(X),
                   np.array(y),
-                  # epochs=2,
-                  epochs=25,
-                  validation_split=0.25,
-                  # callbacks = [val_loss_early_stopping,train_loss_early_stopping],
-                  # verbose=0
+                  # epochs=5,
+                  epochs=100,
+                  validation_split=0.1,
+                  callbacks = [val_loss_early_stopping,train_loss_early_stopping],
+                  # verbose=0,
+                  batch_size = 1048
                   )
 
     self.model.save(self.example_ant.model_path)

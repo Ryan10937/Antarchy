@@ -34,9 +34,9 @@ class scout(ant):
     for i,row in enumerate(obs):
       for j,char in enumerate(row):
         if char in [ord('#')]:
-          reward -= 5 * 1/get_distance(obs,[i,j])
+          reward -= 5 * 1/get_distance(obs,[i,j])**2
         if char in [ord('%')]:
-          reward += 10 * 1/get_distance(obs,[i,j])
+          reward += 10 * 1/get_distance(obs,[i,j])**2
     # return reward + 10*self.get_food_eaten_this_turn() if self.is_alive else -100
     # return reward + 10*self.get_food_eaten_this_turn()
     return reward 

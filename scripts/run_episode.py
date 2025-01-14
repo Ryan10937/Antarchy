@@ -8,15 +8,16 @@ def run_episode(grid_world: world,episode,config):
   timestep_times=[]
   for step in range(config['num_timesteps']):
     timestep_start = time.time()
+    if grid_world.check_for_end_conditions():
+      break
     grid_world.render()
-    grid_world.entity_turns()
+    grid_world.entity_turns()#step to next state
     # time.sleep(0.25)
 
     grid_world.log_state(episode,step,step==config['num_timesteps']-1)
     timestep_end = time.time()
     timestep_times.append(timestep_end-timestep_start)
-    if grid_world.check_for_end_conditions():
-      break
+    
   print('Average timestep (s)',np.mean(timestep_times))
   grid_world.save_history()
   grid_world.train_models()
