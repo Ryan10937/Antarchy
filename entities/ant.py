@@ -12,10 +12,12 @@ class ant(entity):
     super().__init__(position,map_size_x,map_size_y,display_character,ID)
     self.damage = 10
     self.max_health = 200
+    self.range=1
     self.health = 200
     self.max_movement_speed = 3
     self.obs_range = obs_range
     self.is_food = False
+    self.willing_to_fight = False
     self.intelligence = intelligence
     self.food_eaten = 0
     self.ants_eaten = 0
@@ -53,7 +55,8 @@ class ant(entity):
     
   def attack(self,entity):
     entity.health -= self.damage
-    entity.log(f'{self.ID} attacking {entity.ID} for {entity.damage}')
+    # entity.log(f'{self.ID} attacking {entity.ID} for {entity.damage}')
+    # print(f'{self.ID} attacking {entity.ID} for {self.damage}')
     if entity.health <= 0:
       entity.display_character='~'
       entity.is_alive=False
@@ -63,13 +66,29 @@ class ant(entity):
         self.ants_eaten+=1
 
   def act(self,grid,action):
-    if len(grid[self.position[0],self.position[1]].entities)>1:
-      self.fight(grid[self.position[0],self.position[1]].entities)
+    if len(self.get_entities_in_range(grid))>1:
+      self.willing_to_fight = True
     else:
-      self.move(grid,action)
+      self.willing_to_fight = False
 
-
-  
+    self.move(grid,action)
+  def get_entities_in_range(self,grid):
+    #get entities in the 4 adjacent spots and self
+    spots = [grid[i,j] for i,j in 
+             [
+               [self.position[0],self.position[1]],
+               [self.position[0]-1,self.position[1]],
+               [self.position[0],self.position[1]-1],
+               [self.position[0]+1,self.position[1]],
+               [self.position[0],self.position[1]+1],
+             ]
+             if i<len(grid) and j<len(grid[0])
+      ] 
+    entities=[]
+    for spot in spots:
+      for ent in spot.entities:
+        entities.append(ent)
+    return entities
 
   
   def save_history(self,ant_ID,ant_name):
@@ -131,6 +150,5 @@ class ant(entity):
     if len(obs) == 0:
       print('observable space is none')
     return tf.convert_to_tensor(obs, dtype=tf.int32)
-    # return tf.convert_to_tensor([self.pad_ant_obs_list(obs,self.history)], dtype=tf.int32)
   
   

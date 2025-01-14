@@ -12,6 +12,7 @@ from entities.soldier import soldier
 from entities.runner import runner
 from entities.scout import scout
 from entities.food import food
+from scripts import resolve_ant_fight
 class spot():
   def __init__(self,position,grid_max):
     self.position = position
@@ -197,7 +198,9 @@ class world():
         continue
       prev_position_x = ant.position[0]
       prev_position_y = ant.position[1]
+      resolve_ant_fight.ant_fight(ant.get_entities_in_range(self.grid))
       ant.act(self.grid,actions[i])
+
       self.actions_history.append(actions)
       self.grid[prev_position_x,prev_position_y].remove_entity(ant)
       self.grid[ant.position[0],ant.position[1]].add_entity(ant)
@@ -215,9 +218,7 @@ class world():
       #call each model with obs x mask
       species_obs = [obs for i,obs in enumerate(observations) if species_mask[i]==1]
       #store action results at new_list x mask
-      # species_actions = self.species_to_class[species].infer(species_obs)#use species-specific model on batch of species_obs
       species_actions,species_history = self.queens[species].infer(species_obs,species_history)#use species-specific model on batch of species_obs
-      # [a.history.append(species_history[i]) for i,a in enumerate(self.ants) if species_mask[i]==1]
       count=0
       for i in range(len(self.ants)):
         if species_mask[i]==1:#wilo when ant dies
@@ -225,7 +226,6 @@ class world():
             print('Ant history is shape',np.array(species_history[count]['obs']).shape, ' not ', (self.queens[species].max_input_size,self.queens[species].max_input_size))
           self.ants[i].history.append(species_history[count])
           count+=1
-      # actions = [species_obs if species_mask[i]==1 else for a in actions]
       count = 0
       for i,action in enumerate(actions):
         if species_mask[i]==1:
@@ -238,14 +238,6 @@ class world():
 
 
   def train_models(self):
-    # unique_species_names = []
-    # unique_species = []
-    # for ant in self.ants:
-    #   if ant.name not in unique_species_names:
-    #     unique_species_names.append(ant.name)
-    #     unique_species.append(ant)
-    # for species in unique_species:
-    #   self.queens[species].train_model()#this method covers loading, training, and saving model to appropriate path
     for species in self.config['species']:
       self.queens[species].train_model(self.episode)#this method covers loading, training, and saving model to appropriate path
 

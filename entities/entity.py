@@ -67,7 +67,9 @@ class entity():
   def check_to_stop(self,grid):
     #stop if there would be a fight/food
     grid_spot = grid[self.position[0],self.position[1]]
-    if grid_spot.character == self.display_character:
+    if len([e for e in self.get_entities_in_range(grid) if e.name!=self.name])>0:
+      return True
+    elif grid_spot.character == self.display_character:
       #if same species, keep moving
       return False
     elif grid_spot.character == ' ':
@@ -76,10 +78,10 @@ class entity():
     elif grid_spot.character == 'X':#if there is more than one entity
       if all([x.display_character==self.display_character for x in grid_spot.entities]):
         #if all of these entities are the same species, move along
-        return True
+        return False
       else:
         #if any of them are non-self species, stop.
-        return False
+        return True
     else:
       return True
 

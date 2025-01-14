@@ -15,7 +15,8 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--config',type=str)
   parser.add_argument('--seed',type=int, required=False,default=-1)
-  parser.add_argument('--control',type=bool, required=False,default=False)
+  parser.add_argument('--control_run',type=bool, required=False,default=False)
+  parser.add_argument('--model_run',type=bool, required=False,default=False)
   parser.add_argument('--reset_models',type=bool, required=False,default=False)
   parser.add_argument('--reset_training_data',type=bool, required=False,default=False)
   args = parser.parse_args()
@@ -65,7 +66,7 @@ if __name__ == '__main__':
       run_seed = random.random()
     else:
       run_seed = args.seed
-    if args.control == True:
+    if args.control_run == True:
       grid_world = world(
                   x_size=config['grid_size_x'],
                   y_size=config['grid_size_y'],
@@ -78,17 +79,18 @@ if __name__ == '__main__':
                   )
       control_stats.append(run_episode(grid_world,episode,config))
   
-    grid_world = world(
-                x_size=config['grid_size_x'],
-                y_size=config['grid_size_y'],
-                num_ants=config['ants'],
-                num_food=config['food'],
-                config=config,
-                seed=run_seed,
-                control=False,
-                episode=episode,
-                )
-    episode_stats.append(run_episode(grid_world,episode,config))
+    if args.model_run == True:
+      grid_world = world(
+                  x_size=config['grid_size_x'],
+                  y_size=config['grid_size_y'],
+                  num_ants=config['ants'],
+                  num_food=config['food'],
+                  config=config,
+                  seed=run_seed,
+                  control=False,
+                  episode=episode,
+                  )
+      episode_stats.append(run_episode(grid_world,episode,config))
 
     print(f'Episode {episode} Concluded')
   # for episode in range(config['episodes']):
@@ -128,7 +130,7 @@ if __name__ == '__main__':
   #   print(f'Episode {episode} Concluded')
 
   #plot stats
-  if args.control==True:
+  if args.control_run==True:
     [print(ep) for ep in control_stats]
   [print(ep) for ep in episode_stats]
 
