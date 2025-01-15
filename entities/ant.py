@@ -100,7 +100,7 @@ class ant(entity):
       else:
         with jsonlines.open(f'{self.history_path}_{ant_name}_{ant_ID}_{num_history_files}.csv', mode='a') as f:
           f.write(history_dict)
-  def get_reward(self,obs,action):
+  def get_reward(self,obs):
     #Get a small living reward 
       #based on timestep?
     #Get a large-ish negative reward for dying
@@ -110,7 +110,7 @@ class ant(entity):
     reward = 0
     if self.health > 0: #until history is per-ant, this should be disabled
       reward +=-0.1
-    reward += self.get_species_reward(obs,action)
+    reward += self.get_species_reward(obs)
     return reward
 
   def get_observable_space(self,grid,max_input_size):

@@ -141,7 +141,7 @@ class world():
       name = self.config['species'][attributes['ID']]
     return name_to_class[name](**attributes)
   def render(self):
-    print(self.timestep,'benchmark'if self.control else 'model')
+    print(self.timestep,'benchmark 'if self.control else 'model ',self.episode)
     print(self.grid)
 
   def place_ants(self):
