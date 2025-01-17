@@ -237,10 +237,11 @@ class world():
       f.write(message+'\n')
 
 
-  def train_models(self):
+  def train_models(self,epochs):
+    train_history_arr = []
     for species in self.config['species']:
-      self.queens[species].train_model(self.episode)#this method covers loading, training, and saving model to appropriate path
-
+      train_history_arr.append((species,self.queens[species].train_model(self.episode,epochs)))#this method covers loading, training, and saving model to appropriate path
+    return train_history_arr
   def save_history(self):
     for ant in self.ants:
       ant.save_history(ant.ID,ant.name)

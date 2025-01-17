@@ -4,7 +4,7 @@ num_timesteps: 100
 grid_size_x: 25
 grid_size_y: 35
 
-episodes: 50
+episodes: 15
 
 food: 10
 

@@ -8,6 +8,7 @@ import numpy as np
 import random
 import os
 import shutil
+import matplotlib.pyplot as plt
 import scripts.plot_episode_stats as pes
 if __name__ == '__main__':
 
@@ -58,8 +59,32 @@ if __name__ == '__main__':
   with open(args.config,'r') as f:
     config = yaml.safe_load(f)
 
+
+  #train models prior to runs
+  # training_grid_world = world(
+  #                 x_size=config['grid_size_x'],
+  #                 y_size=config['grid_size_y'],
+  #                 num_ants=config['ants'],
+  #                 num_food=config['food'],
+  #                 config=config,
+  #                 seed=0,
+  #                 control=False,
+  #                 episode=-1,
+  #                 )
+  # models_train_history = training_grid_world.train_models(epochs=1000)
+  # for species,train_history in models_train_history:
+  #   plt.figure()
+  #   plt.plot(train_history.history['loss'], label='Train Loss')
+  #   plt.plot(train_history.history['val_loss'], label='Validation Loss')
+  #   plt.title('Model Loss')
+  #   plt.xlabel('Epoch')
+  #   plt.ylabel('Loss')
+  #   plt.legend(loc='upper right')
+  #   plt.savefig(f'figures/{species}_training_history.png')
+
   episode_stats = []
   control_stats = []
+
 
   for episode in range(config['episodes']):
     if args.seed == -1:
@@ -67,7 +92,7 @@ if __name__ == '__main__':
     else:
       run_seed = args.seed
     if args.control_run == True:
-      grid_world = world(
+      control_grid_world = world(
                   x_size=config['grid_size_x'],
                   y_size=config['grid_size_y'],
                   num_ants=config['ants'],
@@ -77,10 +102,10 @@ if __name__ == '__main__':
                   control=True,
                   episode=episode,
                   )
-      control_stats.append(run_episode(grid_world,episode,config))
+      control_stats.append(run_episode(control_grid_world,episode,config))
   
     if args.model_run == True:
-      grid_world = world(
+      model_grid_world = world(
                   x_size=config['grid_size_x'],
                   y_size=config['grid_size_y'],
                   num_ants=config['ants'],
@@ -90,44 +115,9 @@ if __name__ == '__main__':
                   control=False,
                   episode=episode,
                   )
-      episode_stats.append(run_episode(grid_world,episode,config))
+      episode_stats.append(run_episode(model_grid_world,episode,config))
 
     print(f'Episode {episode} Concluded')
-  # for episode in range(config['episodes']):
-  #   if args.seed == -1:
-  #     run_seed = random.random()
-  #   else:
-  #     run_seed = args.seed
-  #   if args.control == True:
-  #     try:  
-  #       grid_world = world(
-  #                   x_size=config['grid_size_x'],
-  #                   y_size=config['grid_size_y'],
-  #                   num_ants=config['ants'],
-  #                   num_food=config['food'],
-  #                   config=config,
-  #                   seed=run_seed,
-  #                   control=True,
-  #                   episode=episode,
-  #                   )
-  #       control_stats.append(run_episode(grid_world,episode,config))
-  #     except Exception as e:
-  #       print(e)
-  #   try:
-  #     grid_world = world(
-  #                 x_size=config['grid_size_x'],
-  #                 y_size=config['grid_size_y'],
-  #                 num_ants=config['ants'],
-  #                 num_food=config['food'],
-  #                 config=config,
-  #                 seed=run_seed,
-  #                 control=False,
-  #                 episode=episode,
-  #                 )
-  #     episode_stats.append(run_episode(grid_world,episode,config))
-  #   except Exception as e:
-  #     print(e)
-  #   print(f'Episode {episode} Concluded')
 
   #plot stats
   if args.control_run==True:
