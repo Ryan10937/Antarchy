@@ -11,13 +11,13 @@ class soldier(ant):
     self.display_character='0'
     self.model_path = 'brains/soldier/novice.keras'
     self.history_path = 'history/soldier/'
-    self.obs_range = 2
+    self.obs_range = 5
     self.intelligence = 1
     self.ants_eaten_last_turn = 0
     self.walls_bumped_last_turn = 0
     super().__init__(position,map_size_x,map_size_y,self.display_character,ID,self.intelligence,self.obs_range,config)
 
-  def get_species_reward(self,obs,action=None):
+  def get_species_reward(self,obs):
     def get_distance(obs,coords):
       #if @ is in center, then use that, else look for @
       if obs[obs.shape[0]//2,obs.shape[1]//2] == ord('@'):

@@ -22,12 +22,14 @@ class queen():
                        }[species_name]
  
     # self.max_sequence_length = 15
-    self.eps = 1.0 if control else 0.25 
+    self.eps = 1.0
+    self.eps_decay = 0.999
     self.control = control
-    self.number_of_dreams = 3
+    self.number_of_dreams = 1
     self.discount_factor = 0.9
     self.max_sequence_length = max_sequence_length + self.number_of_dreams
-    self.max_input_size = 13
+    # self.max_input_size = 13
+    self.max_input_size = 15
     self.action_space = 5 #5 action choices, cardinal directions and no movement
     self.direction_dict = {
       0:[0,0],
@@ -53,6 +55,12 @@ class queen():
         tf.keras.layers.Masking(mask_value=0),  # Mask padded values (0.0)
         # tf.keras.layers.InputLayer(shape=(None,self.max_input_size*self.max_input_size),dtype=int),
         tf.keras.layers.LSTM(64*8, return_sequences=True),
+        tf.keras.layers.LSTM(64*8, return_sequences=True),
+        tf.keras.layers.LSTM(64*8, return_sequences=True),
+        tf.keras.layers.LSTM(64*8, return_sequences=True),
+        tf.keras.layers.LSTM(64*8, return_sequences=True),
+        tf.keras.layers.LSTM(64*8, return_sequences=True),
+        tf.keras.layers.LSTM(64*8, return_sequences=True),
         # tf.keras.layers.SimpleRNN(64, return_sequences=True),
         # tf.keras.layers.SimpleRNN(64, return_sequences=True),
         # tf.keras.layers.SimpleRNN(64, return_sequences=True),
@@ -62,7 +70,7 @@ class queen():
         tf.keras.layers.Dropout(rate=0.25),
         tf.keras.layers.Dense(64,activation='relu'),  # Output Q-values for each action
         tf.keras.layers.Dropout(rate=0.25),
-        tf.keras.layers.Dense(self.action_space,activation='sigmoid')  # Output Q-values for each action
+        tf.keras.layers.Dense(self.action_space,activation='relu')  # Output Q-values for each action
       ])
       
       # lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -70,22 +78,22 @@ class queen():
       #     decay_steps=1000,
       #     decay_rate=0.9
       # )
-      opt = tf.keras.optimizers.Adam(learning_rate=0.00001)
-      # opt = tf.keras.optimizers.RMSprop(learning_rate=0.001)
+      # opt = tf.keras.optimizers.Adam(learning_rate=0.00001)
+      opt = tf.keras.optimizers.RMSprop(learning_rate=0.0001)
       # opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
       # self.model.compile(optimizer=opt, loss='mse')#mae?
       self.model.compile(optimizer=opt, loss='mae')#mae?
 
       
 
-  def train_model(self,episode):
+  def train_model(self,episode,epochs):
     if self.control:
       return
     X = []
     y = []
     
     #randomly select n files for training
-    limit = 10000 
+    limit = 200
     file_list = os.listdir(self.example_ant.history_path)
     rand_indecies = [random.randint(0,len(file_list)-1) for _ in range(limit)]
     file_list = [file_list[ind] for ind in rand_indecies]
@@ -95,47 +103,54 @@ class queen():
         ant_history = [obj for obj in f]
 
       #limit history randomly
-      random_limit = random.randint(1,len(ant_history))
-      
-      #X
-      ant_history = ant_history[:random_limit]
-      padded_history = self.pad_ant_obs_list(obs=None,history=ant_history)
-      X.append(tf.reshape(padded_history,(self.max_sequence_length,self.max_input_size*self.max_input_size)))
-      
+      # random_limit = random.randint(1,len(ant_history))
+      if len(ant_history) == 0:
+        continue
+      for sequential_limit in range(0,len(ant_history)):
+        #X
+        ant_history_limited = ant_history[:sequential_limit+1]
+        padded_history = self.pad_ant_obs_list(obs=None,history=ant_history_limited)
+        X.append(tf.reshape(padded_history,(self.max_sequence_length,self.max_input_size*self.max_input_size)))
+        #y
+        ant_y = np.array([dct['reward'] for dct in ant_history_limited]) 
 
-      #y
-      ant_y = np.array([[dct['reward'] if i == dct['action'] else 
-                         a for i,a in enumerate(range(self.action_space))] 
-                         for dct in ant_history]) 
-      # ant_y = (ant_y - np.mean(ant_y))/np.std(ant_y)
-      ant_y = (ant_y - np.min(ant_y))/(np.max(ant_y) - np.min(ant_y))
-      y.append(sum(ant_y[:random_limit]))
+        # #append sum of reward to arr 
+        regulatory_term = (np.max(ant_y) - np.min(ant_y))
+        regulatory_term = 1 if regulatory_term==0 else regulatory_term
+        ant_y = (ant_y - np.min(ant_y))/regulatory_term
+        y.append([sum(col) for col in zip(*ant_y)])
+
+        # #append only last reward to arr
+        # reward_arr = ant_y[sequential_limit]
+        # regulatory_term = (np.max(reward_arr) - np.min(reward_arr))
+        # regulatory_term = 1 if regulatory_term==0 else regulatory_term
+        # reward_arr = (reward_arr - np.min(reward_arr))/regulatory_term
+        # y.append(reward_arr)
     
     print(self.example_ant.name,'training',' episode ',episode)
 
     val_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
-                                                                patience=3,           
+                                                                patience=50,           
                                                                 verbose=0, 
                                                                 restore_best_weights=True)
     train_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='loss',    
-                                                                patience=5,           
+                                                                patience=50,           
                                                                 verbose=0, 
                                                                 restore_best_weights=True)
-    self.model.fit(np.array(X),
+    train_history = self.model.fit(np.array(X),
                   np.array(y),
-                  # epochs=5,
-                  epochs=100,
+                  epochs=epochs,
                   validation_split=0.1,
                   callbacks = [val_loss_early_stopping,train_loss_early_stopping],
                   # verbose=0,
-                  batch_size = 1048
+                  batch_size = 512
                   )
 
     self.model.save(self.example_ant.model_path)
-
-
+    return train_history
   def infer(self,obs_list,ant_history,dreaming=False):
-    # obs_list = tf.reshape(obs_list,(-1,self.max_sequence_length,self.max_input_size,self.max_input_size))
+    if self.eps<=0.1:
+      self.eps = self.eps*self.eps_decay
     actions=[]
     #add epsilon randomness and decay
     if self.eps > random.random():
@@ -161,117 +176,107 @@ class queen():
       
       actions = [np.argmax(pred_reward) for pred_reward in predicted_rewards]
     
-    reward_arr = []
-    if dreaming==False:
-      #get predicted rewards
-      dream_start_time=time.time()
-      for i,dream in enumerate(range(self.number_of_dreams)):
-        if i==0:
-          new_obs_list,new_actions,new_rewards,new_history = self.infer_next_states(obs_list,actions,copy.deepcopy(ant_history))
-        else:
-          new_obs_list,new_actions,new_rewards,new_history = self.infer_next_states(new_obs_list,new_actions,new_history)
-          reward_arr.append([r*(self.discount_factor**dream) for r in new_rewards])
-      dream_end_time=time.time()
-      # print('total dream time: ',dream_end_time-dream_start_time)
+
+    # dream_start_time=time.time()
+    new_obs_time = []
+    reward_arr = np.array([[0.0 for a in range(self.action_space)] for _ in range(len(obs_list))])
+    for i,action in enumerate(range(self.action_space)):
+      new_obs_start_time=time.time()
+      next_potential_obs_list = [self.get_new_obs_from_action(obs,action) for obs in obs_list]
+      new_obs_end_time=time.time()
+      new_obs_time.append(new_obs_end_time-new_obs_start_time)
+      #fill rewards with state_reward, no dreaming yet
+      for j,obs in enumerate(next_potential_obs_list):
+        reward_arr[j,action] = self.example_ant.get_reward(obs)
+
+
+      dreaming_reward_arr = []
+      if dreaming==False:
+        dream_start_time=time.time()
+        #get predicted rewards
+        for i,dream in enumerate(range(self.number_of_dreams)):
+          if i==0:
+            new_obs_list,new_actions,new_rewards,new_history = self.infer_next_states(next_potential_obs_list,actions,copy.deepcopy(ant_history))
+          else:
+            new_obs_list,new_actions,new_rewards,new_history = self.infer_next_states(new_obs_list,new_actions,new_history)
+          dreaming_reward_arr.append([r*(self.discount_factor**dream) for r in new_rewards])
+        
+        # add predicted rewards to reward array.
+        for j,reward_sum in enumerate(range(len(reward_arr))):
+          # assert len(dreaming_reward_arr[j]) == len(reward_arr)
+          reward_arr[j][action] += sum([r[j] for r in dreaming_reward_arr])
+        dream_end_time=time.time()
+        # print('Dream time',dream_end_time-dream_start_time)
       
-    
+    dream_end_time=time.time()
     history = []
-    for i,(obs,action) in enumerate(zip(obs_list,actions)):
+    for i,obs in enumerate(obs_list):
       #store observation, decision, and reward for future training
-      reward = self.example_ant.get_reward(obs,action)
-      reward += sum([r[i] for r in reward_arr])
-      history.append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
+      # history.append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(action),'reward':float(reward)})#doing this every time might be too slow, maybe gather and save in batches?
+      history.append({'obs':np.squeeze(np.array(obs)).tolist(),'reward':[float(r) for r in reward_arr[i]]})#doing this every time might be too slow, maybe gather and save in batches?
+    
+    # print('new_obs_time',sum(new_obs_time))
+    
     return actions,history
   
-  def infer_next_states(self,obs_list,pred_actions,history_list):
+  def get_new_obs_from_action(self,obs,action):
     def find_self_in_obs(obs): 
-      obs = obs.numpy()
+      # obs = obs.numpy()
       self_character_ascii = ord(self.ant_self_character)
       for i,row in enumerate(obs):
         for j,character in enumerate(row):
           if character == self_character_ascii:
             return [i,j]
-      return None
+      # return None
     def check_position(position,obs):
       #stop if any of these conditions are met:
-        #if at a wall (i really need to add a wall character)
         #if sharing a space with another species
         #if sharing a space with food
-      spot_character = obs[position[0]][position[1]]
+        #if about to step on a wall
+      stopped=False
       # if spot_character in ['#','X','%']:
-      if spot_character in [ord('X'),ord('%')]:#what if i let it dream out of bounds but punished it heavily for it
-        return False
-      elif position[0]<0 or position[1]<0 or position[0]>=len(obs) or position[1]>=len(obs[0]):
-        print('Tried to dream out of obs bounds')
-        return False
+      if position[0]<0 or position[1]<0 or position[0]>=len(obs)-1 or position[1]>=len(obs[0])-1:
+        stopped = True
+      elif obs[position[0]][position[1]] in [ord('X'),ord('%'),ord('#')]:#what if i let it dream out of bounds but punished it heavily for it
+        stopped = True
       else:
-        return True
+        stopped = False
+      return stopped
       
     def move_one_in_obs(obs,direction,position):
       potential_position = [
         position[0] + direction[0],
         position[1] + direction[1]
       ]
-      if check_position(potential_position,obs):
-        return potential_position,True
-      else:
-        return position,False
-    def get_obs_reward(obs,new_position):
-      #if new position in obs is food, give reward +10
-      if obs[new_position[0]][new_position[1]] == ord('%'):
-        return 10
-      elif obs[new_position[0]][new_position[1]] == ord('#'):
-        return -100
-      elif obs[new_position[0]][new_position[1]] == ord('X'):
-        return -1
-      else:
-        return 0
-      
+      stopped=check_position(potential_position,obs)
+      return potential_position,stopped
+    
+    position = find_self_in_obs(np.array(obs))
+    prev_position = []
+    new_obs = np.array(obs).copy()
+    for _ in range(self.example_ant.max_movement_speed):
+      prev_position = position.copy()
+      position,stopped = move_one_in_obs(new_obs,self.direction_dict[action],position)
+      if stopped==True:
+        break
+      new_obs[prev_position[0],prev_position[1]]=ord(' ')
+      new_obs[position[0]][position[1]]=ord(self.ant_self_character)
 
-    #runtime analysis vars
-    time_spent_moving_one = []
-    time_spent_finding_self = []
+    return new_obs
 
-
+  def infer_next_states(self,obs_list,pred_actions,history_list):
     #using observations and predicted actions, create new obs_list
-    directions = [self.direction_dict[x] for x in pred_actions]
     new_rewards=[]
-    for i,(obs,direction) in enumerate(zip(obs_list,directions)):
-      # print(obs.shape)
-      finding_self_start=time.time()
-      position = find_self_in_obs(obs)
-      finding_self_end=time.time()
-      time_spent_finding_self.append(finding_self_end-finding_self_start)
-
-      obs[position[0],position[1]]==ord(' ')
-      for _ in range(self.example_ant.max_movement_speed):
-        moving_one_start=time.time()
-        position,stopped = move_one_in_obs(obs,direction,position)
-        moving_one_end=time.time()
-        time_spent_moving_one.append(moving_one_end-moving_one_start)
-        if stopped:
-          break
-      get_new_reward_start=time.time()
-      # new_rewards.append(get_obs_reward(obs,position))
-      new_rewards.append(self.example_ant.get_species_reward(obs))
-      obs_list[i][position[0]][position[1]]==ord(self.ant_self_character)
-      history_list[i].append({'obs':np.squeeze(obs.numpy()).tolist(),'action':int(pred_actions[i]),'reward':float(new_rewards[-1])})#doing this every time might be too slow, maybe gather and save in batches?
-
+    for i,(obs,action) in enumerate(zip(obs_list,pred_actions)):
       
-      get_new_reward_end=time.time()
-
-    get_new_actions_start=time.time()
+      new_obs = self.get_new_obs_from_action(obs,action)
+      new_rewards.append(self.example_ant.get_species_reward(new_obs))
+      history_list[i].append({'obs':np.squeeze(np.array(new_obs)).tolist(),'action':int(pred_actions[i]),'reward':float(new_rewards[-1])})
+      obs_list[i] = new_obs
+      
     #infer on those observations, get new actions, and get rewards
     new_predicted_rewards,_ = self.infer(obs_list,history_list,dreaming=True)
     new_actions = [np.argmax(x) for x in new_predicted_rewards]
-    get_new_actions_end=time.time()
-
-
-    #print time analysis
-    # print('time_spent_moving_one:',sum(time_spent_moving_one))
-    # print('time_spent_finding_self:',sum(time_spent_finding_self))
-    # print('time_spent_getting_actions:',get_new_actions_end-get_new_actions_start)
-    # print('time_spent_getting_reward:',get_new_reward_end-get_new_reward_start)
 
     #return new observations, actions, rewards, and new_positions
     return obs_list,new_actions,new_rewards,history_list
@@ -279,29 +284,18 @@ class queen():
 
   def pad_ant_obs_list(self,obs,history):
     def history_obs_to_obs(history):
-      # print([len(h['obs']) for h in history])
-      # print([len(h['obs'][0]) for h in history])
       return [h['obs'] for h in history]
-    # if len(history)>0:
-    #   if type(history[0]) == dict:
-    #     hist_obs = history_obs_to_obs(history)
-    #   else:
-    #     hist_obs = history
-    # else:
-    #     hist_obs = history
+  
     hist_obs = history_obs_to_obs(history)
 
-    if obs != None:
+    if obs is not None:
       hist_obs.append(obs)
     num_padding = self.max_sequence_length-len(hist_obs)
     num_padding = 0 if num_padding < 0 else num_padding
     for _ in range(num_padding):
       padded_arr = np.zeros((len(hist_obs[0]),len(hist_obs[0][0])),dtype=np.int32)
       hist_obs.append(padded_arr)
-    # print('num_padding',num_padding)
-    # print('len(hist_obs)',len(hist_obs))
-    # print('len(hist_obs)',[len(h) for h in hist_obs])
-    # print(hist_obs[0])
+
     hist_obs_np = np.array(hist_obs)
     shape_0_match = hist_obs_np.shape[0] == self.max_sequence_length
     shape_1_match = hist_obs_np.shape[1] == self.max_input_size
