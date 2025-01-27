@@ -22,8 +22,8 @@ class queen():
                        }[species_name]
  
     # self.max_sequence_length = 15
-    self.eps = 1.0
-    self.eps_decay = 0.999
+    self.eps = 0.1
+    self.eps_decay = 0.9999
     self.control = control
     self.number_of_dreams = 1
     self.discount_factor = 0.9
@@ -51,9 +51,7 @@ class queen():
     else:
       self.model = tf.keras.models.Sequential([
         tf.keras.layers.InputLayer(shape=(self.max_sequence_length,self.max_input_size*self.max_input_size),dtype=float),
-        # tf.keras.layers.Masking(mask_value=ord('?')),  # Mask fog of war values
         tf.keras.layers.Masking(mask_value=0),  # Mask padded values (0.0)
-        # tf.keras.layers.InputLayer(shape=(None,self.max_input_size*self.max_input_size),dtype=int),
         tf.keras.layers.LSTM(64*8, return_sequences=True),
         tf.keras.layers.LSTM(64*8, return_sequences=True),
         tf.keras.layers.LSTM(64*8, return_sequences=True),
@@ -61,27 +59,16 @@ class queen():
         tf.keras.layers.LSTM(64*8, return_sequences=True),
         tf.keras.layers.LSTM(64*8, return_sequences=True),
         tf.keras.layers.LSTM(64*8, return_sequences=True),
-        # tf.keras.layers.SimpleRNN(64, return_sequences=True),
-        # tf.keras.layers.SimpleRNN(64, return_sequences=True),
-        # tf.keras.layers.SimpleRNN(64, return_sequences=True),
         tf.keras.layers.Dropout(rate=0.25),
         tf.keras.layers.LSTM(64, return_sequences=False),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dropout(rate=0.25),
-        tf.keras.layers.Dense(64,activation='relu'),  # Output Q-values for each action
+        tf.keras.layers.Dense(64,activation='relu'),
         tf.keras.layers.Dropout(rate=0.25),
         tf.keras.layers.Dense(self.action_space,activation='relu')  # Output Q-values for each action
       ])
       
-      # lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-      #     initial_learning_rate=0.01,
-      #     decay_steps=1000,
-      #     decay_rate=0.9
-      # )
-      # opt = tf.keras.optimizers.Adam(learning_rate=0.00001)
       opt = tf.keras.optimizers.RMSprop(learning_rate=0.0001)
-      # opt = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-      # self.model.compile(optimizer=opt, loss='mse')#mae?
       self.model.compile(optimizer=opt, loss='mae')#mae?
 
       
@@ -93,7 +80,7 @@ class queen():
     y = []
     
     #randomly select n files for training
-    limit = 200
+    limit = 150
     file_list = os.listdir(self.example_ant.history_path)
     rand_indecies = [random.randint(0,len(file_list)-1) for _ in range(limit)]
     file_list = [file_list[ind] for ind in rand_indecies]
@@ -103,7 +90,6 @@ class queen():
         ant_history = [obj for obj in f]
 
       #limit history randomly
-      # random_limit = random.randint(1,len(ant_history))
       if len(ant_history) == 0:
         continue
       for sequential_limit in range(0,len(ant_history)):
@@ -119,13 +105,6 @@ class queen():
         regulatory_term = 1 if regulatory_term==0 else regulatory_term
         ant_y = (ant_y - np.min(ant_y))/regulatory_term
         y.append([sum(col) for col in zip(*ant_y)])
-
-        # #append only last reward to arr
-        # reward_arr = ant_y[sequential_limit]
-        # regulatory_term = (np.max(reward_arr) - np.min(reward_arr))
-        # regulatory_term = 1 if regulatory_term==0 else regulatory_term
-        # reward_arr = (reward_arr - np.min(reward_arr))/regulatory_term
-        # y.append(reward_arr)
     
     print(self.example_ant.name,'training',' episode ',episode)
 
@@ -149,8 +128,11 @@ class queen():
     self.model.save(self.example_ant.model_path)
     return train_history
   def infer(self,obs_list,ant_history,dreaming=False):
+    
     if self.eps<=0.1:
       self.eps = self.eps*self.eps_decay
+    if self.control==True:
+      self.eps=1.0
     actions=[]
     #add epsilon randomness and decay
     if self.eps > random.random():

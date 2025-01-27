@@ -20,7 +20,7 @@ def run_episode(grid_world: world,episode,config):
     
   print('Average timestep (s)',np.mean(timestep_times))
   grid_world.save_history()
-  grid_world.train_models(epochs=10)
+  grid_world.train_models(epochs=20)
   episode_stats = grid_world.get_stats() 
   return episode_stats
   # waiting_count=0
