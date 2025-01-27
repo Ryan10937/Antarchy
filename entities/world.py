@@ -72,7 +72,8 @@ class world():
       'config':config
       })
     self.queens = {species:queen(species,
-                                 max_sequence_length=self.config['num_timesteps'],
+                                #  max_sequence_length=self.config['num_timesteps'],
+                                 max_sequence_length=10,#arbitrary value for testing
                                  control=control
                                  ) 
                                  for species in config['species']}

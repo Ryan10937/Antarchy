@@ -28,7 +28,6 @@ class queen():
     self.number_of_dreams = 1
     self.discount_factor = 0.9
     self.max_sequence_length = max_sequence_length + self.number_of_dreams
-    # self.max_input_size = 13
     self.max_input_size = 15
     self.action_space = 5 #5 action choices, cardinal directions and no movement
     self.direction_dict = {
@@ -74,6 +73,8 @@ class queen():
       
 
   def train_model(self,episode,epochs):
+    print(self.example_ant.name,'training',' episode ',episode)
+    
     if self.control:
       return
     X = []
@@ -92,9 +93,11 @@ class queen():
       #limit history randomly
       if len(ant_history) == 0:
         continue
-      for sequential_limit in range(0,len(ant_history)):
+      for sequential_limit in range(1,len(ant_history)):
         #X
-        ant_history_limited = ant_history[:sequential_limit+1]
+        lower_hist_limit = 0 if sequential_limit-self.max_sequence_length < 0 else sequential_limit-self.max_sequence_length
+        assert lower_hist_limit>=0
+        ant_history_limited = ant_history[lower_hist_limit:sequential_limit]
         padded_history = self.pad_ant_obs_list(obs=None,history=ant_history_limited)
         X.append(tf.reshape(padded_history,(self.max_sequence_length,self.max_input_size*self.max_input_size)))
         #y
@@ -106,7 +109,6 @@ class queen():
         ant_y = (ant_y - np.min(ant_y))/regulatory_term
         y.append([sum(col) for col in zip(*ant_y)])
     
-    print(self.example_ant.name,'training',' episode ',episode)
 
     val_loss_early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',    
                                                                 patience=50,           
@@ -140,7 +142,8 @@ class queen():
     else:
       #using observation, make a decision.
       infer_start_time=time.time()
-      obs_list_for_prediction = np.array([self.pad_ant_obs_list(ob,hist) for ob,hist in zip(obs_list,ant_history)])
+      obs_list_for_prediction = np.array([self.pad_ant_obs_list(ob,hist[-1*(self.max_sequence_length-1) if len(hist) >= self.max_sequence_length-1 else 0:]) 
+                                          for ob,hist in zip(obs_list,ant_history)])
       try:
         tmp = obs_list_for_prediction.shape[1]
       except:
@@ -269,7 +272,7 @@ class queen():
       return [h['obs'] for h in history]
   
     hist_obs = history_obs_to_obs(history)
-
+    prior_hist_obs_len = len(hist_obs)
     if obs is not None:
       hist_obs.append(obs)
     num_padding = self.max_sequence_length-len(hist_obs)
@@ -285,7 +288,8 @@ class queen():
     if shape_0_match and shape_1_match and shape_2_match:
       pass
     else:
-      print('hist_obs_np.shape: ',hist_obs_np.shape)
+      print('hist_obs_np.shape: ',hist_obs_np.shape, 'should be', 
+            self.max_sequence_length,self.max_input_size,self.max_input_size,'before padding it was ',prior_hist_obs_len)
     assert shape_0_match
     assert shape_1_match
     assert shape_2_match
